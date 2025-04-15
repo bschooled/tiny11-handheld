@@ -42,18 +42,9 @@ function Optimize-Memory(){
             Set-MMAgent -$setting $settings[$setting]
         } 
         else {
-            Write-Host "Disabling $setting..."
-            Disable-MMAgent -$setting
+            Write-Host "No changes needed for $setting."
         }
     }
-
-    #set memory compression
-    Enable-MMAgent -ApplicationLaunchPrefetching
-    Enable-MMAgent -ApplicationPreLaunch
-    Set-MMAgent -MaxOperationAPIFiles 8192
-    Enable-MMAgent -MemoryCompression
-    Enable-MMAgent -OperationAPI
-    Enable-MMAgent -PageCombining
 }
 
 #download setup
