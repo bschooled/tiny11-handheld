@@ -1,7 +1,8 @@
 param (
     [string]$Global:ScratchDisk = $PSScriptRoot,
     [string]$architecture = "amd64",
-    [string]$ImageName = "TinyHandheld11"
+    [string]$ImageName = "TinyHandheld11",
+    [string]$ImageOutputPath = $PSScriptRoot
 )
 
 #Uncomment the line below to enable debugging
@@ -610,7 +611,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($PSScriptRoot)\$ImageName"
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($ImageOutputPath)\$ImageName"
 
 Write-Host "Performing Cleanup..."
 Remove-Item -Path "$($ScratchDisk)\tiny11" -Recurse -Force | Out-Null

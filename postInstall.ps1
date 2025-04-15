@@ -20,8 +20,32 @@ $Global:wingetPackages = @(
 )
 
 function Optimize-Memory(){
+
+    [hashtable]$settings = @{
+        "ApplicationLaunchPrefetching" = $true
+        "ApplicationPreLaunch" = $true
+        "MaxOperationAPIFiles" = 8192
+        "MemoryCompression" = $true
+        "OperationAPI" = $true
+        "PageCombining" = $true
+    }
     #set powercfg 
     powercfg /h /type reduced
+
+    foreach ($setting in $settings.Keys) {
+        if ($($(Get-MMAgent).$setting) -eq $false) {
+            Write-Host "Enabling $setting..."
+            Enable-MMAgent -$setting
+        }
+        elseif ($($(Get-MMAgent).$setting) -lt 8192) {
+            Write-Host "Setting $setting to $($settings[$setting])..."
+            Set-MMAgent -$setting $settings[$setting]
+        } 
+        else {
+            Write-Host "Disabling $setting..."
+            Disable-MMAgent -$setting
+        }
+    }
 
     #set memory compression
     Enable-MMAgent -ApplicationLaunchPrefetching
@@ -57,7 +81,7 @@ function Extract-Packages($DownloadPath,$packageName){
         New-Item -Path $extractPath -ItemType Directory | Out-Null
     } 
     #Extract the files using 7zr
-    & "$downloadPath\7zr.exe" x "$downloadPath\$packageName" -o"$extractPath" -y
+    & "$downloadPath\7zr.exe" x "$downloadPath\$packageName.exe" -o"$extractPath" -y
 }
 
 function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$wingetInstall){
@@ -114,7 +138,7 @@ Optimize-Memory
 Download-Packages -DownloadPath $DownloadPath -downloadHash $Global:downloadHash
 
 foreach ($package in $downloadHash.Keys){
-    $installedPackage = Get-ItemProperty -Path "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -eq $package }
+    $installedPackage = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -eq $package }
     if([string]::IsNullOrEmpty("$installedPackage")){
         Write-Host "$package is not installed, installing..."
         Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $false
