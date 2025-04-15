@@ -1,23 +1,29 @@
 [CmdletBinding()]
 param (
     [Parameter()]
-    [string]$DownloadPath = "C:\packages"
+    [string]$DownloadPath = "C:\packages",
+    [Parameter()]
+    [bool]$CheckGraphics = $false
 )
 
     #Filenames and URLs for the downloads
 $Global:downloadHash = @{
     "7zr" = "https://7-zip.org/a/7zr.exe"
     "AMD Software" = "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe"
+    "Intel Arc" = "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe"
     "Handheld Companion" = "https://github.com/Valkirie/HandheldCompanion/releases/download/0.22.2.8/HandheldCompanion-0.22.2.8.exe"
 }
 $Global:chocoPackages= @(
     "steam",
     "memreduct"
 )
-
 $Global:wingetPackages = @(
     "CompactGUI"
 )
+$Global:vendorHash = @{
+    "AMD Software" = 1002
+    "Intel Arc" = 8086
+}
 
 function Optimize-Memory(){
 
@@ -53,7 +59,6 @@ function Download-Packages($DownloadPath,$downloadHash){
     If(-not $(Test-Path $DownloadPath)){
         New-Item -Path $DownloadPath -ItemType Directory | Out-Null
     } 
-    
     $downloadHash.GetEnumerator() | ForEach-Object {
         $fileName = $_.Key + ".exe"
         $filePath = Join-Path -Path $DownloadPath -ChildPath $fileName
@@ -125,11 +130,40 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
     }
 }
 
+function CheckVenID($packageName){
+    $venID = $(Get-WmiObject Win32_VideoController | select -ExpandProperty PNPDeviceID) -match "VEN_\d{4}" | Out-Null; $matches[0]
+
+    if ($venID -eq $Global:vendorHash[$packageName]) {
+        Write-Host "$packageName matches $venID."
+        return $true
+
+    } else {
+        Write-Host "$packageName is not from the correct vendor."
+        return $false  
+    }
+}
+
+# Run optimize memory function
 Optimize-Memory
+
+# Check if the graphics packages are needed
+if($CheckGraphics -eq $true) {
+    foreach ($package in $Global:vendorHash.Keys) {   
+        if($package -like "AMD" -or $package -like "Intel"){
+            Write-Host "Checking vendor ID for $package..."
+            if (-not $(CheckVenID($package))) {
+                $Global:downloadHash.Remove($package)
+                Write-Host "Removing $package from download list."
+            }     
+        }
+    }
+}
+
+# Download the exe packages
 Download-Packages -DownloadPath $DownloadPath -downloadHash $Global:downloadHash
 
 foreach ($package in $downloadHash.Keys){
-    $installedPackage = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -eq $package }
+    $installedPackage = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -like $package }
     if([string]::IsNullOrEmpty("$installedPackage")){
         Write-Host "$package is not installed, installing..."
         Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $false
