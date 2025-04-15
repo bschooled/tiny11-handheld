@@ -52,7 +52,7 @@ function Extract-Packages($DownloadPath,$packageName){
         New-Item -Path $extractPath -ItemType Directory | Out-Null
     } 
     #Extract the files using 7zr
-    & "$downloadPath\7zr.exe" x "$downloadPath\$packageName.exe" -o"$extractPath" -y
+    & "$downloadPath\7zr.exe" x "$downloadPath\$packageName" -o"$extractPath" -y
 }
 
 function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall){
@@ -81,6 +81,9 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall){
             Write-Host "Install AMD Package"
             & "$downloadPath\extracted\$packageName\setup.exe" -INSTALL -OUTPUT screen
         }
+        elseif ($packageName -like "7zr"){
+            Write-Host "7zr doesn't need installed, skipping installation."
+        }
         else{
             try {
                 Write-Host "Attempting to install $downloadPath\$packageName.exe"
@@ -97,9 +100,9 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall){
 
 Optimize-Memory
 Download-Packages -DownloadPath $DownloadPath -downloadHash $Global:downloadHash
-Extract-Packages -DownloadPath $DownloadPath -packageName "amddriver"
-foreach ($package in $downloadHash){
-    Install-Packages -DownloadPath $DownloadPath -packageName $package.Key -chocoInstall $false
+
+foreach ($package in $downloadHash.Keys){
+    Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $false
 }
 foreach ($package in $chocoInstall){
     Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $true
