@@ -525,9 +525,7 @@ Enable-TasksControl
 Disable-Misc
 Unmount-Registry
 
-$OEMPATH = '$OEM$\C\scripts\'
-New-Item -Path "$($scratchDisk)\$OEMPATH" -ItemType Directory -Force | Out-Null
-Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)\$OEMPATH" -Force | Out-Null
+Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)\scratchdir\Windows\Setup\Scripts\" -Force | Out-Null
 Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$($ScratchDisk)\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 Write-Host "Tweaking complete!"
 
@@ -539,8 +537,6 @@ Export-Image
 
 #mount boot image
 Mount-BootImage
-New-Item -Path "$($scratchDisk)\$OEMPATH" -ItemType Directory -Force | Out-Null
-Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)\$OEMPATH" -Force | Out-Null
 
 #remount registry
 Mount-Registry
