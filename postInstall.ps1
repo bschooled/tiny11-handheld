@@ -39,18 +39,10 @@ function Download-Packages($DownloadPath,$downloadHash){
         $filePath = Join-Path -Path $DownloadPath -ChildPath $fileName
         if (-not (Test-Path $filePath)) {
             Write-Host "Downloading $($_.Value) to $filePath"
-            Start-BitsTransfer -Source $_.Value -Destination $filePath -DisplayName $fileName -Asynchronous -TransferType Download -ErrorAction Stop
+            Start-BitsTransfer -Source $_.Value -Destination $filePath -DisplayName $fileName -TransferType Download -ErrorAction Stop
         } else {
             Write-Host "$fileName already exists, skipping download."
         }
-    }
-    while ($(Get-BitsTransfer | where{$_.Status -eq "Transferring"}).Count -gt 0){
-        Write-Host "Waiting for BITS transfer to complete..."
-        Get-BitsTransfer | where{$_.Status -eq "Transferring"} | ForEach-Object {
-            Write-Host "Transfer Name: $($_.DisplayName) - Status: $($_.Status) - Bytes transferred: $($_.BytesTransferred)"
-        }
-        Start-Sleep -Seconds 5
-        
     }
 }
 
@@ -71,8 +63,14 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall){
     }
 
     if ($chocoInstall -eq $true) {
-        Write-Host "Installing $packageName using Chocolatey"
-        choco install $packageName -y --no-prompt
+        if([string]::IsNullOrEmpty("$(choco list $packageName | Select-String -Pattern '0')")){
+            Write-Host "Installing $packageName using Chocolatey"
+            choco install $packageName -y --no-prompt
+        }
+        else{
+            Write-Host "$packageName is already installed, skipping installation."
+        }
+
     }
     else{
         if($packageName -like "amd"){
