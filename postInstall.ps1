@@ -9,6 +9,7 @@ param (
     #Filenames and URLs for the downloads
 $Global:downloadHash = @{
     "7zr" = "https://7-zip.org/a/7zr.exe"
+    "WinGet" = "https://github.com/microsoft/winget-cli/releases/download/v1.10.340/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
     "AMD Software" = "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe"
     "Intel Arc" = "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe"
     "Handheld Companion" = "https://github.com/Valkirie/HandheldCompanion/releases/download/0.22.2.8/HandheldCompanion-0.22.2.8.exe"
@@ -43,11 +44,11 @@ function Optimize-Memory(){
     foreach ($setting in $settings.Keys) {
         if ($($(Get-MMAgent).$setting) -eq $true -and $setting -notlike "MaxOperationAPIFiles") {
             Write-Host "Enabling $setting..."
-            Enable-MMAgent -$setting
+            Enable-MMAgent "-$setting"
         }
         elseif ($setting -like "MaxOperationAPIFiles" -and $($(Get-MMAgent).$setting) -lt 8192) {
             Write-Host "Setting $setting to $($settings[$setting])..."
-            Set-MMAgent -$setting $settings[$setting]
+            Set-MMAgent "-$setting" $settings[$setting]
         } 
         else {
             Write-Host "No changes needed for $setting."
@@ -62,7 +63,8 @@ function Download-Packages($DownloadPath,$downloadHash){
         New-Item -Path $DownloadPath -ItemType Directory | Out-Null
     } 
     $downloadHash.GetEnumerator() | ForEach-Object {
-        $fileName = $_.Key + ".exe"
+        $extension = $_.Value.Split("/")[-1].Split(".")[-1]
+        $fileName = $_.Key + ".$extension"
         $filePath = Join-Path -Path $DownloadPath -ChildPath $fileName
         if (-not (Test-Path $filePath)) {
             Write-Host "Downloading $($_.Value) to $filePath"
@@ -83,7 +85,7 @@ function Extract-Packages($DownloadPath,$packageName){
 }
 
 function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$wingetInstall){
-    if(-not $(Get-Command choco) -and $chocoInstall -eq $true){
+    if(-not $(Get-Command choco -ErrorAction SilentlyContinue) -and $chocoInstall -eq $true){
         Write-Host "Chocolatey is not installed. Installing Chocolatey..."
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
@@ -99,7 +101,7 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
             Write-Host "$packageName is already installed, skipping installation."
         }
     }
-    elseif($wingetInstall -eq $true) {
+    elseif(-not $(Get-Command winget -ErrorAction SilentlyContinue) -and $wingetInstall -eq $true) {
         if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
             Write-Host "Installing $packageName using winget"
             winget install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
@@ -123,6 +125,11 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         elseif ($packageName -like "Intel Arc"){
             Write-Host "Installing Intel Graphics Driver"
             Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList '-p' -Wait
+        }
+        elseif ($packageName -like "WinGet") {
+            Write-Host "Installing WinGet"
+            Add-AppxPackage -Path "$downloadPath\$packageName.msixbundle" -ForceUpdateFromAnyVersion -ErrorAction Stop
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
         }
         else{
             try {
