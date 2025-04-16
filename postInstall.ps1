@@ -101,14 +101,28 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
             Write-Host "$packageName is already installed, skipping installation."
         }
     }
-    elseif(-not $(Get-Command winget -ErrorAction SilentlyContinue) -and $wingetInstall -eq $true) {
-        if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
-            Write-Host "Installing $packageName using winget"
-            winget install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+    elseif($wingetInstall -eq $true) {
+
+        if($(Get-Command winget.exe -ErrorAction SilentlyContinue)){
+            if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
+                Write-Host "Installing $packageName using winget"
+                winget install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+            }
+            else{
+                Write-Host "$packageName is already installed, skipping installation."
+            }
         }
         else{
-            Write-Host "$packageName is already installed, skipping installation."
+            $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
+            if([string]::IsNullOrEmpty("$(& $wingetPath list $packageName | Select-String -Pattern 'No installed packages found')")){
+                Write-Host "Installing $packageName using winget"
+                & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+            }
+            else{
+                Write-Host "$packageName is already installed, skipping installation."
+            }
         }
+
     }
     else{
         if($packageName -like "AMD Software"){
@@ -129,6 +143,8 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         elseif ($packageName -like "WinGet") {
             Write-Host "Installing WinGet"
             Add-AppxPackage -Path "$downloadPath\$packageName.msixbundle" -ForceUpdateFromAnyVersion -ErrorAction Stop
+            $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
+            [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$($wingetPath.DirectoryName.FullName)", [System.EnvironmentVariableTarget]::Machine)
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
         }
         else{
