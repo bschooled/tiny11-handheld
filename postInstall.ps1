@@ -142,11 +142,16 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
             Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList '-p' -Wait
         }
         elseif ($packageName -like "WinGet") {
-            Write-Host "Installing WinGet"
-            Add-AppxPackage -Path "$downloadPath\$packageName.msixbundle" -ForceUpdateFromAnyVersion -ErrorAction Stop
-            $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
-            [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$($wingetPath.DirectoryName.FullName)", [System.EnvironmentVariableTarget]::Machine)
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+            if($(Get-Command winget.exe -ErrorAction SilentlyContinue)){
+                Write-Host "WinGet is already installed, skipping installation."
+            }
+            else {
+                Write-Host "Installing WinGet"
+                Add-AppxPackage -Path "$downloadPath\$packageName.msixbundle" -ForceUpdateFromAnyVersion -ErrorAction Stop
+                $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
+                [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$($wingetPath.DirectoryName.FullName)", [System.EnvironmentVariableTarget]::Machine)
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")           <# Action when all if and elseif conditions are false #>
+            }
         }
         else{
             try {
