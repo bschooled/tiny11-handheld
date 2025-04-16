@@ -42,13 +42,14 @@ function Optimize-Memory(){
     powercfg /h /type reduced
 
     foreach ($setting in $settings.Keys) {
+        $setting = $setting.ToString()
         if ($($(Get-MMAgent).$setting) -eq $true -and $setting -notlike "MaxOperationAPIFiles") {
             Write-Host "Enabling $setting..."
-            Enable-MMAgent "-$setting"
+            Invoke-Expression -Command "Enable-MMAgent -$setting"
         }
         elseif ($setting -like "MaxOperationAPIFiles" -and $($(Get-MMAgent).$setting) -lt 8192) {
             Write-Host "Setting $setting to $($settings[$setting])..."
-            Set-MMAgent "-$setting" $settings[$setting]
+            Invoke-Expression -Command "Set-MMAgent -$setting $($settings[$setting])"
         } 
         else {
             Write-Host "No changes needed for $setting."
