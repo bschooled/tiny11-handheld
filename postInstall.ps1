@@ -117,9 +117,9 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         elseif ($packageName -like "7zr"){
             Write-Host "7zr doesn't need installed, skipping installation."
         }
-        elseif ($packageName -like "Intel"){
+        elseif ($packageName -like "Intel Arc"){
             Write-Host "Installing Intel Graphics Driver"
-            Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList "-p" -Wait
+            Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList '-p' -Wait
         }
         else{
             try {
@@ -153,7 +153,7 @@ Optimize-Memory
 # Check if the graphics packages are needed
 if($CheckGraphics -eq $true) {
     foreach ($package in $Global:vendorHash.Keys) {   
-        if($package -like "AMD" -or $package -like "Intel"){
+        if($package -like "AMD" -or $package -like "Intel Arc"){
             Write-Host "Checking vendor ID for $package..."
             if (-not $(CheckVenID($package))) {
                 $Global:downloadHash.Remove($package)
@@ -172,10 +172,10 @@ foreach ($package in $downloadHash.Keys){
         Write-Host "$package is not installed, installing..."
         Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $false
     }
-    }
     else{
         Write-Host "$package is already installed, skipping installation."
     }
+}
  
 foreach ($package in $Global:chocoPackages){
     Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $true
