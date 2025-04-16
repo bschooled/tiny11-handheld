@@ -518,7 +518,7 @@ $scripts = @(
 		cmd.exe /c "rmdir C:\Windows.old";
 	};
 	{
-		powershell.exe -File "C:\Windows\Setup\Scripts\postInstall.ps1";
+		powershell.exe -File "C:\postInstall.ps1";
 	}
 );
 

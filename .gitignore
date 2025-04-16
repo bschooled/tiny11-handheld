@@ -1,4 +1,6 @@
 # Ignore files
 *.exe
 *.iso
+*.log
 drivers/
+amd64/

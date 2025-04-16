@@ -1,9 +1,13 @@
-# Uncomment the line below to enable debugging
-# Set-PSDebug -Trace 1
-
 param (
-    [string]$Global:ScratchDisk
+    [string]$Global:ScratchDisk = $PSScriptRoot,
+    [string]$architecture = "amd64",
+    [string]$ImageName = "TinyHandheld11",
+    [string]$ImageOutputPath = $PSScriptRoot
 )
+
+#Uncomment the line below to enable debugging
+#Set-PSDebug -Trace 1
+
 
 if (-not $ScratchDisk) {
     $Global:ScratchDisk = $PSScriptRoot
@@ -525,7 +529,6 @@ Enable-TasksControl
 Disable-Misc
 Unmount-Registry
 
-Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)\scratchdir\Windows\Setup\Scripts\" -Force | Out-Null
 Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$($ScratchDisk)\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 Write-Host "Tweaking complete!"
 
@@ -563,6 +566,22 @@ Remove-Item "$($ScratchDisk)\tiny11\sources\install.wim" > $null 2>&1
 Write-Host "The tiny11 image is now completed. Proceeding with the making of the ISO..."
 Write-Host "Copying unattended file for bypassing MS account on OOBE..."
 Copy-Item -Path "$($PSScriptRoot)\autounattend.xml" -Destination "$($ScratchDisk)\tiny11\autounattend.xml" -Force | Out-Null
+
+
+$oemfolder = '\tiny11\sources\$OEM$\C\'
+if(-not $(Test-Path "$($ScratchDisk)$($oemfolder)")) {
+    New-Item -ItemType Directory -Force -Path "$($ScratchDisk)$($oemfolder)" | Out-Null
+}
+try{
+    Write-Host "Copying postInstall script to $($ScratchDisk)\tiny11\postInstall.ps1"
+    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)\tiny11\postInstall.ps1" -Force | Out-Null
+    Write-Host "Copying postInstall script to $($ScratchDisk)$($oemfolder)"
+    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($oemfolder)" -Force | Out-Null
+}
+catch {
+    Write-Host "Failed to copy postInstall script. Continuing..."
+}
+
 Write-Host "Creating ISO image..."
 $ADKDepTools = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\$hostarchitecture\Oscdimg"
 $localOSCDIMGPath = "$($PSScriptRoot)\oscdimg.exe"
@@ -592,7 +611,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($PSScriptRoot)\tiny11.iso"
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($ImageOutputPath)\$ImageName"
 
 Write-Host "Performing Cleanup..."
 Remove-Item -Path "$($ScratchDisk)\tiny11" -Recurse -Force | Out-Null
