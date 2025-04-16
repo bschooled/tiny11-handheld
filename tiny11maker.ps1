@@ -1,17 +1,13 @@
 param (
     [string]$Global:ScratchDisk = $PSScriptRoot,
     [string]$architecture = "amd64",
-    [string]$ImageName = "TinyHandheld11",
-    [string]$ImageOutputPath = $PSScriptRoot
+    [string]$ImageName = "TinyHandheld11.iso",
+    [string]$ImageOutputPath = $PSScriptRoot,
+    [bool]$InjectDrivers = $false
 )
 
 #Uncomment the line below to enable debugging
 #Set-PSDebug -Trace 1
-
-
-if (-not $ScratchDisk) {
-    $Global:ScratchDisk = $PSScriptRoot
-}
 
 # Check if PowerShell execution is restricted
 if ((Get-ExecutionPolicy) -eq 'Restricted') {
@@ -552,9 +548,12 @@ Write-Host "Tweaking complete!"
 #unload registry
 Unmount-Registry
 
-#Add Drivers
-Write-Host "Adding drivers..."
-& 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-Driver /Driver:"$PWD\drivers" /Recurse
+if($InjectDrivers -eq $true){
+    Write-Host "Injecting drivers..."
+    & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-Driver /Driver:"$PWD\drivers" /Recurse
+} else {
+    Write-Host "Drivers injection skipped."
+}
 
 Write-Host "Unmounting image..."
 & 'DISM' /English /Unmount-Image /MountDir:"$($ScratchDisk)\scratchdir" /Commit
@@ -611,6 +610,9 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
+if(-not $(Test-Path "$($ImageOutputPath)\$ImageName")){
+    New-Item -ItemType Directory -Force -Path "$($ImageOutputPath)\$ImageName" | Out-Null
+}
 & "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($ImageOutputPath)\$ImageName"
 
 Write-Host "Performing Cleanup..."

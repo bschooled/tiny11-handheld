@@ -4,3 +4,5 @@
 *.log
 drivers/
 amd64/
+scratchdir/
+tiny11/
