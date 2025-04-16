@@ -155,7 +155,7 @@ Optimize-Memory
 # Check if the graphics packages are needed
 if($CheckGraphics -eq $true) {
     foreach ($package in $Global:vendorHash.Keys) {   
-        if($package -like "AMD" -or $package -like "Intel Arc"){
+        if($package -like "*AMD*" -or $package -like "*Intel*"){
             Write-Host "Checking vendor ID for $package..."
             if (-not $(CheckVenID($package))) {
                 $Global:downloadHash.Remove($package)
