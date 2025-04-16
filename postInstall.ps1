@@ -99,7 +99,7 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
     elseif($wingetInstall -eq $true) {
         if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
             Write-Host "Installing $packageName using winget"
-            winget install $packageName --disable-interactivity
+            winget install $packageName --silent
         }
         else{
             Write-Host "$packageName is already installed, skipping installation."
