@@ -1,7 +1,7 @@
 param (
     [string]$Global:ScratchDisk = $PSScriptRoot,
     [string]$architecture = "amd64",
-    [string]$ImageName = "TinyHandheld11",
+    [string]$ImageName = "TinyHandheld11.iso",
     [string]$ImageOutputPath = $PSScriptRoot
 )
 

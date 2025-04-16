@@ -184,3 +184,4 @@ foreach ($package in $Global:chocoPackages){
 foreach ($package in $Global:wingetPackages){
     Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $false -wingetInstall $true
 }
+exit;
