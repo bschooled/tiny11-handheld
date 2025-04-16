@@ -3,7 +3,7 @@ param (
     [Parameter()]
     [string]$DownloadPath = "C:\packages",
     [Parameter()]
-    [bool]$CheckGraphics = $false
+    [switch]$CheckGraphics
 )
 
     #Filenames and URLs for the downloads

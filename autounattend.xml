@@ -344,7 +344,7 @@ Set-ItemProperty -LiteralPath $key -Name 'ConfigureStartPins' -Value $json -Type
 &lt;/LayoutModificationTemplate&gt;
 		</File>
 		<File path="C:\Windows\Setup\Scripts\unattend-01.ps1">
-powershell.exe -File C:\postInstall.ps1 -CheckGraphics:$true
+powershell.exe -File C:\postInstall.ps1 -CheckGraphics;
 		</File>
 		<File path="C:\Windows\Setup\Scripts\Specialize.ps1">
 $scripts = @(
