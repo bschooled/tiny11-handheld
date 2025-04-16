@@ -117,6 +117,10 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         elseif ($packageName -like "7zr"){
             Write-Host "7zr doesn't need installed, skipping installation."
         }
+        elseif ($packageName -like "Intel"){
+            Write-Host "Installing Intel Graphics Driver"
+            Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList "-p" -Wait
+        }
         else{
             try {
                 Write-Host "Attempting to install $downloadPath\$packageName.exe"
