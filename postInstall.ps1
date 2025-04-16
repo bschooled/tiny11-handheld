@@ -41,11 +41,11 @@ function Optimize-Memory(){
     powercfg /h /type reduced
 
     foreach ($setting in $settings.Keys) {
-        if ($($(Get-MMAgent).$setting) -eq $false) {
+        if ($($(Get-MMAgent).$setting) -eq $true -and $setting -notlike "MaxOperationAPIFiles") {
             Write-Host "Enabling $setting..."
             Enable-MMAgent -$setting
         }
-        elseif ($($(Get-MMAgent).$setting) -lt 8192) {
+        elseif ($setting -like "MaxOperationAPIFiles" -and $($(Get-MMAgent).$setting) -lt 8192) {
             Write-Host "Setting $setting to $($settings[$setting])..."
             Set-MMAgent -$setting $settings[$setting]
         } 
@@ -83,10 +83,11 @@ function Extract-Packages($DownloadPath,$packageName){
 }
 
 function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$wingetInstall){
-    if(-not $(Get-Command choco)){
+    if(-not $(Get-Command choco) -and $chocoInstall -eq $true){
         Write-Host "Chocolatey is not installed. Installing Chocolatey..."
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     }
 
     if ($chocoInstall -eq $true) {
@@ -116,8 +117,8 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
             Write-Host "Install AMD Package"
             Start-Process -FilePath "$downloadPath\extracted\$packageName\setup.exe" -ArgumentList "-INSTALL -OUTPUT screen" -Wait
         }
-        elseif ($packageName -like "7zr"){
-            Write-Host "7zr doesn't need installed, skipping installation."
+        elseif ($packageName -like "7zr" -or $packageName -like "AutoLogon"){
+            Write-Host "$packageName doesn't need installed, skipping installation."
         }
         elseif ($packageName -like "Intel Arc"){
             Write-Host "Installing Intel Graphics Driver"
@@ -126,7 +127,7 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         else{
             try {
                 Write-Host "Attempting to install $downloadPath\$packageName.exe"
-                Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList "/SILENT" -Wait
+                Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList "/SILENT /NORESTART" -Wait
             }
             catch {
                 Write-Host "Failed to install with /SILENT switch, will try with /S"
