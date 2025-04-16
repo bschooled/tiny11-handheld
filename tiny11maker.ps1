@@ -5,7 +5,6 @@ param (
     [string]$ImageOutputPath = $PSScriptRoot,
     [bool]$InjectDrivers = $false
 )
-
 #Uncomment the line below to enable debugging
 #Set-PSDebug -Trace 1
 
@@ -367,6 +366,11 @@ $Host.UI.RawUI.WindowTitle = "Tiny11 image creator for Windows 11 24H2"
 Clear-Host
 Write-Host "Welcome to the Tiny11 image creator for Windows 11 24H2! Release: 2024-11-21"
 
+if($ScratchDisk -ne $PSScriptRoot){
+    Write-Host "Removing any trailing slashes from the scratch disk path..."
+    $Global:ScratchDisk = $scratchDisk.TrimEnd('\')
+}
+
 $Global:hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
 New-Item -ItemType Directory -Force -Path "$($ScratchDisk)\tiny11\sources" | Out-Null
 do {
@@ -567,15 +571,19 @@ Write-Host "Copying unattended file for bypassing MS account on OOBE..."
 Copy-Item -Path "$($PSScriptRoot)\autounattend.xml" -Destination "$($ScratchDisk)\tiny11\autounattend.xml" -Force | Out-Null
 
 
-$oemfolder = '\tiny11\sources\$OEM$\C\'
+$oemfolder = '\tiny11\sources\$OEM$\$1'
+$rootoemfolder = '\tiny11\$OEM$\$1'
 if(-not $(Test-Path "$($ScratchDisk)$($oemfolder)")) {
     New-Item -ItemType Directory -Force -Path "$($ScratchDisk)$($oemfolder)" | Out-Null
 }
+if(-not $(Test-Path "$($ScratchDisk)$($rootoemfolder)")) {
+    New-Item -ItemType Directory -Force -Path "$($ScratchDisk)$($rootoemfolder)" | Out-Null
+}
 try{
-    Write-Host "Copying postInstall script to $($ScratchDisk)\tiny11\postInstall.ps1"
-    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)\tiny11\postInstall.ps1" -Force | Out-Null
+    Write-Host "Copying postInstall script to $($ScratchDisk)\$rootoemfolder"
+    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($rootoemfolder)\postInstall.ps1" -Force | Out-Null
     Write-Host "Copying postInstall script to $($ScratchDisk)$($oemfolder)"
-    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($oemfolder)" -Force | Out-Null
+    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($oemfolder)\postInstall.ps1" -Force | Out-Null
 }
 catch {
     Write-Host "Failed to copy postInstall script. Continuing..."
@@ -618,10 +626,6 @@ if(-not $(Test-Path "$($ImageOutputPath)\$ImageName")){
 Write-Host "Performing Cleanup..."
 Remove-Item -Path "$($ScratchDisk)\tiny11" -Recurse -Force | Out-Null
 Remove-Item -Path "$($ScratchDisk)\scratchdir" -Recurse -Force | Out-Null
-
-# Finishing up
-Write-Host "Creation completed! Press any key to exit the script..."
-$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
 # Stop the transcript
 Stop-Transcript

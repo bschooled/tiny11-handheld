@@ -12,13 +12,15 @@ $Global:downloadHash = @{
     "AMD Software" = "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe"
     "Intel Arc" = "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe"
     "Handheld Companion" = "https://github.com/Valkirie/HandheldCompanion/releases/download/0.22.2.8/HandheldCompanion-0.22.2.8.exe"
+    "Autologon" = "https://download.sysinternals.com/files/AutoLogon.zip"
 }
 $Global:chocoPackages= @(
     "steam",
     "memreduct"
 )
 $Global:wingetPackages = @(
-    "CompactGUI"
+    "IridiumIO.CompactGUI",
+    "git.git"
 )
 $Global:vendorHash = @{
     "AMD Software" = 1002
@@ -99,7 +101,7 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
     elseif($wingetInstall -eq $true) {
         if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
             Write-Host "Installing $packageName using winget"
-            winget install $packageName --silent
+            winget install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
         }
         else{
             Write-Host "$packageName is already installed, skipping installation."
