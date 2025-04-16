@@ -6,6 +6,8 @@ param (
     [switch]$CheckGraphics
 )
 
+Start-Transcript -Path "$PSScriptRoot\postInstall.log" -Append -NoClobber -Force
+
     #Filenames and URLs for the downloads
 $Global:downloadHash = @{
     "7zr" = "https://7-zip.org/a/7zr.exe"
@@ -216,4 +218,6 @@ foreach ($package in $Global:chocoPackages){
 foreach ($package in $Global:wingetPackages){
     Install-Packages -DownloadPath $DownloadPath -packageName $package -chocoInstall $false -wingetInstall $true
 }
+
+Stop-Transcript 
 exit;
