@@ -618,8 +618,8 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-if(-not $(Test-Path "$($ImageOutputPath)\$ImageName")){
-    New-Item -ItemType Directory -Force -Path "$($ImageOutputPath)\$ImageName" | Out-Null
+if(-not $(Test-Path "$($ImageOutputPath)")){
+    New-Item -ItemType Directory -Force -Path "$($ImageOutputPath)" | Out-Null
 }
 & "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($ImageOutputPath)\$ImageName"
 
