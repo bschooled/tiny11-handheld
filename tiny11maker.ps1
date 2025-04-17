@@ -191,6 +191,13 @@ function Disable-Bing(){
     & 'reg' 'add' 'HKLM\zNTUSER\Software\Policies\Microsoft\Windows\Explorer' '/v' 'DisableSearchBoxSuggestions' '/t' 'REG_DWORD' '/d' '1' '/f' > $null 2>&1
 }
 
+function Disable-CoreIsolation(){
+    Write-Host "Disabling Core Isolation..."
+    & 'reg' 'add' 'HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard' '/v' 'EnableVirtualizationBasedSecurity' '/t' 'REG_DWORD' '/d' '0' '/f' > $null 2>&1
+    & 'reg' 'add' 'HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard' '/v' 'RequirePlatformSecurityFeatures' '/t' 'REG_DWORD' '/d' '0' '/f' > $null 2>&1
+    & 'reg' 'add' 'HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' '/v' 'Enabled' '/t' 'REG_DWORD' '/d' '0' '/f' > $null 2>&1
+}
+
 function Mount-Registry(){
     #Registry Tweaks
     Write-Host "Loading registry..."
@@ -512,15 +519,16 @@ foreach ($packagePattern in $packagePatterns) {
 #additional tweaking 
 #Remove-Edge
 #Remove-OneDrive
-#Remove-SysReqs -setupImage:$false
+Remove-SysReqs -setupImage:$false
 Remove-Sponsored
 Enable-LocalOOBE
-#Disable-ReservedStorage
+Disable-ReservedStorage
 Disable-BitLocker
 Disable-Telemetry
 Disable-DevAndOutlook
 Disable-ChatIcon
 Disable-Bing
+Disable-CoreIsolation
 
 #take ownership of tasks scheduler
 Mount-Registry
@@ -545,7 +553,7 @@ Mount-BootImage
 Mount-Registry
 
 #bypass system requirements on setup image with setup flag
-#Remove-SysReqs -setupImage:$true
+Remove-SysReqs -setupImage:$true
 
 Write-Host "Tweaking complete!"
 

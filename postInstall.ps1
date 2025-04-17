@@ -109,21 +109,36 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         if($(Get-Command winget.exe -ErrorAction SilentlyContinue)){
             if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
                 Write-Host "Installing $packageName using winget"
-                winget install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+                $job = Start-Job -ScriptBlock {
+                    param($packageName)
+                    winget.exe install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+                } -ArgumentList $packageName
+                $job | Wait-Job -Timeout 30
+                $job | Stop-Job
             }
             else{
                 Write-Host "$packageName is already installed, skipping installation."
             }
         }
         else{
-            $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
-            if([string]::IsNullOrEmpty("$(& $wingetPath list $packageName | Select-String -Pattern 'No installed packages found')")){
-                Write-Host "Installing $packageName using winget"
-                & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget --
+            $wingetPath = $(Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe").FullName
+
+            if(-not $wingetPath){
+                $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe").FullName
             }
-            else{
-                Write-Host "$packageName is already installed, skipping installation."
+
+            $job = Start-Job -ScriptBlock{
+                if([string]::IsNullOrEmpty("$(& $wingetPath list $packageName | Select-String -Pattern 'No installed packages found')")){
+                    Write-Host "Installing $packageName using winget"
+                    & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+                }
+                else{
+                    Write-Host "$packageName is already installed, skipping installation."
+                }
             }
+            $job | Wait-Job -Timeout 30
+            $job | Stop-Job
+
         }
 
     }
