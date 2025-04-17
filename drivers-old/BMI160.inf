@@ -1,0 +1,96 @@
+/*++
+;
+;Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;Module Name:
+;    BMI160.INF
+;
+;Abstract:
+;    INF file for installing the Sensors 2.0 BMI160 sample driver
+;
+;Installation Notes:
+;    Using Devcon: Type "devcon install BMI160.inf umdf2\BMI160" to install
+;
+;--*/
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Sensor
+ClassGuid   = {5175D334-C371-4806-B3BA-71FD53C9258D}
+Provider    = %BOSCH%
+CatalogFile = BMI160.cat
+DriverVer = 03/01/2022,1.0.23.0
+
+[SourceDisksNames]
+1 = %MediaDescription%,,,""
+
+[SourceDisksFiles]
+BMI160.dll   = 1,,
+
+[Manufacturer]
+%ManufacturerName% = BMI160_Device, NTamd64
+
+;*******************************
+; BMI160 Install Section
+;*******************************
+
+[BMI160_Device.NTamd64]
+; DisplayName       Section          DeviceId
+; -----------       -------          --------
+%BMI160_DevDesc% = BMI160_Inst, ACPI\BOSC0260
+%BMI160_DevDesc% = BMI160_Inst, ACPI\BMI0260
+%BMI160_DevDesc% = BMI160_Inst, ACPI\BOSC0160
+%BMI160_DevDesc% = BMI160_Inst, ACPI\BMI0160
+%BMI160_DevDesc% = BMI160_Inst, ACPI\10EC5280
+
+[BMI160_Inst.NT]
+CopyFiles = BMI160DriverCopy
+
+[BMI160DriverCopy]
+BMI160.dll
+
+[DestinationDirs]
+BMI160DriverCopy = 12,UMDF
+
+;-------------- Service installation
+
+[BMI160_Inst.NT.Services]
+AddService = WUDFRd,0x000001fa,WUDFRD_ServiceInstall
+
+[BMI160_Inst.NT.CoInstallers]
+AddReg = CoInstallers_AddReg
+
+[WUDFRD_ServiceInstall]
+DisplayName   = %WudfRdDisplayName%
+ServiceType   = %SERVICE_KERNEL_DRIVER%
+StartType     = %SERVICE_DEMAND_START%
+ErrorControl  = %SERVICE_ERROR_NORMAL%
+ServiceBinary = %12%\WUDFRd.sys
+
+;-------------- WDF specific section
+
+[BMI160_Inst.NT.Wdf]
+UmdfService              = BMI160, BMI160_Install
+UmdfServiceOrder         = BMI160
+UmdfDirectHardwareAccess = AllowDirectHardwareAccess
+UmdfFileObjectPolicy     = AllowNullAndUnknownFileObjects
+UmdfFsContextUsePolicy   = CannotUseFsContexts
+
+[BMI160_Install]
+UmdfLibraryVersion       = 2.15.0
+ServiceBinary            = %12%\UMDF\BMI160.dll
+UmdfExtensions           = SensorsCx0102
+
+[CoInstallers_AddReg]
+HKR,,CoInstallers32,0x00010000,"WudfCoinstaller.dll"
+
+[Strings]
+MediaDescription         = "Windows BMI160 Driver"
+BOSCH                    = "Bosch"
+ManufacturerName         = "Bosch"
+BMI160_DevDesc        = "Bosch Accelerometer"
+WudfRdDisplayName        = "Windows Driver Foundation - User-mode Driver Framework Reflector"
+
+SERVICE_KERNEL_DRIVER    = 1
+SERVICE_DEMAND_START     = 3
+SERVICE_ERROR_NORMAL     = 1

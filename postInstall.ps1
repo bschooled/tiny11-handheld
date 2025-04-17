@@ -117,7 +117,7 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
             $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
             if([string]::IsNullOrEmpty("$(& $wingetPath list $packageName | Select-String -Pattern 'No installed packages found')")){
                 Write-Host "Installing $packageName using winget"
-                & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
+                & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget --
             }
             else{
                 Write-Host "$packageName is already installed, skipping installation."

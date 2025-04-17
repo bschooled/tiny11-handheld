@@ -512,10 +512,10 @@ foreach ($packagePattern in $packagePatterns) {
 #additional tweaking 
 #Remove-Edge
 #Remove-OneDrive
-Remove-SysReqs -setupImage:$false
+#Remove-SysReqs -setupImage:$false
 Remove-Sponsored
 Enable-LocalOOBE
-Disable-ReservedStorage
+#Disable-ReservedStorage
 Disable-BitLocker
 Disable-Telemetry
 Disable-DevAndOutlook
@@ -545,7 +545,7 @@ Mount-BootImage
 Mount-Registry
 
 #bypass system requirements on setup image with setup flag
-Remove-SysReqs -setupImage:$true
+#Remove-SysReqs -setupImage:$true
 
 Write-Host "Tweaking complete!"
 
