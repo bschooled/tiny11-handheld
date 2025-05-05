@@ -11,23 +11,38 @@ Start-Transcript -Path "$PSScriptRoot\postInstall.log" -Append -NoClobber -Force
     #Filenames and URLs for the downloads
 $Global:downloadHash = @{
     "7zr" = "https://7-zip.org/a/7zr.exe"
-    "WinGet" = "https://github.com/microsoft/winget-cli/releases/download/v1.10.340/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+#    "WinGet" = "https://github.com/microsoft/winget-cli/releases/download/v1.10.340/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
     "AMD Software" = "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe"
     "Intel Arc" = "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe"
     "Handheld Companion" = "https://github.com/Valkirie/HandheldCompanion/releases/download/0.22.2.8/HandheldCompanion-0.22.2.8.exe"
     "Autologon" = "https://download.sysinternals.com/files/AutoLogon.zip"
+#    "Windhawk" = "https://ramensoftware.com/downloads/windhawk_setup.exe"
 }
+
+$Global:gitHubPackages = @{
+    "SecureUxTheme.exe" = "namazso"
+    "winget-cli.msxibundle" = "microsoft"
+    "HandheldCompanion.exe" = "Valkirie"
+}
+
 $Global:chocoPackages= @(
     "steam",
-    "memreduct"
+    "memreduct",
+    "windhawk"
 )
 $Global:wingetPackages = @(
     "IridiumIO.CompactGUI",
     "git.git"
 )
 $Global:vendorHash = @{
-    "AMD Software" = 1002
-    "Intel Arc" = 8086
+    "AMD Software" = '1002'
+    "Intel Arc" = '8086'
+    "Nvidia" = '10DE'
+}
+
+$Global:vendorChipset = @{
+    "AMD" = "amd-ryzen-chipset"
+    "Intel" = "intel-chipset-device-software"
 }
 
 function Optimize-Memory(){
@@ -60,20 +75,45 @@ function Optimize-Memory(){
 }
 
 #download setup
-function Download-Packages($DownloadPath,$downloadHash){
+function Download-Packages($DownloadPath,$downloadHash,[bool]$githubDownload){
 
     If(-not $(Test-Path $DownloadPath)){
         New-Item -Path $DownloadPath -ItemType Directory | Out-Null
     } 
-    $downloadHash.GetEnumerator() | ForEach-Object {
-        $extension = $_.Value.Split("/")[-1].Split(".")[-1]
-        $fileName = $_.Key + ".$extension"
-        $filePath = Join-Path -Path $DownloadPath -ChildPath $fileName
-        if (-not (Test-Path $filePath)) {
-            Write-Host "Downloading $($_.Value) to $filePath"
-            Start-BitsTransfer -Source $_.Value -Destination $filePath -DisplayName $fileName -TransferType Download -ErrorAction Stop
-        } else {
-            Write-Host "$fileName already exists, skipping download."
+    if ($githubDownload -eq $true) {
+        if($(Get-Module PowerShellForGitHub -ListAvailable)){
+            Write-Host "PowerShellForGitHub module is already installed."
+        }
+        else{
+            Write-Host "Installing PowerShellForGitHub module..."
+            Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+        }
+
+        $downloadHash.GetEnumerator() | ForEach-Object {
+            $extension = $_.Name.Split("/")[-1].Split(".")[-1]
+            $repoName = $_.Key.TrimEnd($extension)
+            $filePath = Join-Path -Path $DownloadPath -ChildPath $_.Name
+            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $_.Value)[0].assets.browser_download_url
+
+            if (-not (Test-Path $filePath)) {
+                Write-Host "Downloading $downloadURL to $filePath"
+                Start-BitsTransfer -Source $downloadURL -Destination $filePath -DisplayName $fileName -TransferType Download -ErrorAction Stop
+            } else {
+                Write-Host "$fileName already exists, skipping download."
+            }
+        }        <# Action to perform if the condition is true #>
+    }
+    else{
+        $downloadHash.GetEnumerator() | ForEach-Object {
+            $extension = $_.Value.Split("/")[-1].Split(".")[-1]
+            $fileName = $_.Key + ".$extension"
+            $filePath = Join-Path -Path $DownloadPath -ChildPath $fileName
+            if (-not (Test-Path $filePath)) {
+                Write-Host "Downloading $($_.Value) to $filePath"
+                Start-BitsTransfer -Source $_.Value -Destination $filePath -DisplayName $fileName -TransferType Download -ErrorAction Stop
+            } else {
+                Write-Host "$fileName already exists, skipping download."
+            }
         }
     }
 }
@@ -87,13 +127,32 @@ function Extract-Packages($DownloadPath,$packageName){
     & "$downloadPath\7zr.exe" x "$downloadPath\$packageName.exe" -o"$extractPath" -y
 }
 
-function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$wingetInstall){
+function Check-ChocoInstall() {
     if(-not $(Get-Command choco -ErrorAction SilentlyContinue) -and $chocoInstall -eq $true){
         Write-Host "Chocolatey is not installed. Installing Chocolatey..."
         Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     }
+    else{
+        Write-Host "Chocolatey is already installed, skipping installation."
+    }
+}
+
+function Check-WingetInstall($downloadPath,$packageName) {
+    if($(Get-Command winget.exe -ErrorAction SilentlyContinue)){
+        Write-Host "WinGet is already installed, skipping installation."
+    }
+    else {
+        Write-Host "Installing WinGet"
+        Add-AppxPackage -Path "$downloadPath\$packageName.msixbundle" -ForceUpdateFromAnyVersion -ErrorAction Stop
+        $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
+        [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$($wingetPath.DirectoryName.FullName)", [System.EnvironmentVariableTarget]::Machine)
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")           <# Action when all if and elseif conditions are false #>
+    }
+}
+
+function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$wingetInstall){
 
     if ($chocoInstall -eq $true) {
         if([string]::IsNullOrEmpty("$(choco list $packageName | Select-String -Pattern '0')")){
@@ -106,40 +165,23 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
     }
     elseif($wingetInstall -eq $true) {
 
-        if($(Get-Command winget.exe -ErrorAction SilentlyContinue)){
-            if([string]::IsNullOrEmpty("$(winget list $packageName | Select-String -Pattern 'No installed packages found')")){
+        $wingetPath = $(Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe").FullName
+
+        if(-not $wingetPath){
+            $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe").FullName
+        }
+
+        $job = Start-Job -ScriptBlock{
+            if([string]::IsNullOrEmpty("$(& $wingetPath list $packageName | Select-String -Pattern 'No installed packages found')")){
                 Write-Host "Installing $packageName using winget"
-                $job = Start-Job -ScriptBlock {
-                    param($packageName)
-                    winget.exe install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
-                } -ArgumentList $packageName
-                $job | Wait-Job -Timeout 30
-                $job | Stop-Job
+                & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
             }
             else{
                 Write-Host "$packageName is already installed, skipping installation."
             }
         }
-        else{
-            $wingetPath = $(Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe").FullName
-
-            if(-not $wingetPath){
-                $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe").FullName
-            }
-
-            $job = Start-Job -ScriptBlock{
-                if([string]::IsNullOrEmpty("$(& $wingetPath list $packageName | Select-String -Pattern 'No installed packages found')")){
-                    Write-Host "Installing $packageName using winget"
-                    & $wingetPath install --id $packageName --silent --accept-source-agreements --accept-package-agreements --source winget
-                }
-                else{
-                    Write-Host "$packageName is already installed, skipping installation."
-                }
-            }
-            $job | Wait-Job -Timeout 30
-            $job | Stop-Job
-
-        }
+        $job | Wait-Job -Timeout 30
+        $job | Stop-Job
 
     }
     else{
@@ -157,18 +199,6 @@ function Install-Packages($DownloadPath,$packageName,[bool]$chocoInstall,[bool]$
         elseif ($packageName -like "Intel Arc"){
             Write-Host "Installing Intel Graphics Driver"
             Start-Process -FilePath "$downloadPath\$packageName.exe" -ArgumentList '-p' -Wait
-        }
-        elseif ($packageName -like "WinGet") {
-            if($(Get-Command winget.exe -ErrorAction SilentlyContinue)){
-                Write-Host "WinGet is already installed, skipping installation."
-            }
-            else {
-                Write-Host "Installing WinGet"
-                Add-AppxPackage -Path "$downloadPath\$packageName.msixbundle" -ForceUpdateFromAnyVersion -ErrorAction Stop
-                $wingetPath = Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe"
-                [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$($wingetPath.DirectoryName.FullName)", [System.EnvironmentVariableTarget]::Machine)
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")           <# Action when all if and elseif conditions are false #>
-            }
         }
         else{
             try {
@@ -195,6 +225,7 @@ function CheckVenID($packageName){
         return $false  
     }
 }
+ 
 
 # Run optimize memory function
 Optimize-Memory

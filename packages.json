@@ -1,0 +1,50 @@
+{
+    "name": "packages",
+    "version": "1.0.0",
+    "description": "list of packages for installation",
+    "author": "Bradly Schooley",
+    "dependencies": {
+        "choco": {
+            "url": "https://chocolatey.org/install.ps1"
+        },
+        "winget": {
+            "author": "Microsoft",
+            "url": "https://github.com/microsoft/winget-cli/releases/download/v1.10.340/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+        },
+        "7zr" : {
+            "url": "https://www.7-zip.org/a/7zr.exe"
+        }
+    },
+    "exes": {
+        "Intel Arc": {
+            "graphics" : true,
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe"
+        }
+    },
+    "zip" : {
+        "Autologon": {
+            "url": "https://download.sysinternals.com/files/AutoLogon.zip"
+        },
+        "AMD Software": {
+            "graphics" : true,
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe"
+        }
+    },
+    "github": {
+        "SecureUxTheme.exe": {
+            "author": "namazso"
+        },
+        "winget-cli.msxibundle": {
+            "author": "Microsoft"
+        },
+        "HandheldCompanion.exe": {
+            "author": "Valkirie"
+        }
+    },
+    "chocoPackages": [
+        "steam",
+        "memreduct",
+        "windhawk"       
+    ],
+    "license": "MIT"
+}
