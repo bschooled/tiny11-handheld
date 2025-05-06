@@ -5,46 +5,107 @@
     "author": "Bradly Schooley",
     "dependencies": {
         "choco": {
-            "url": "https://chocolatey.org/install.ps1"
+            "url": "https://chocolatey.org/install.ps1",
+            "download": true
         },
         "winget": {
-            "author": "Microsoft",
-            "url": "https://github.com/microsoft/winget-cli/releases/download/v1.10.340/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+            "url": "choco"
         },
-        "7zr" : {
-            "url": "https://www.7-zip.org/a/7zr.exe"
+        "7zip.install" : {
+            "url": "choco"
         }
     },
     "exes": {
-        "Intel Arc": {
+        "Intel Arc.exe": {
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe",
             "graphics" : true,
-            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe"
+            "download": false
+        },
+        "everything.exe": {
+            "url": "https://www.voidtools.com/Everything-1.4.1.1026.x64-Setup.exe",
+            "graphics" : false,
+            "download": false
         }
     },
     "zip" : {
-        "Autologon": {
-            "url": "https://download.sysinternals.com/files/AutoLogon.zip"
+        "Autologon.zip": {
+            "url": "https://download.sysinternals.com/files/AutoLogon.zip",
+            "graphics" : false,
+            "download": false
         },
-        "AMD Software": {
+        "AMDSoftware.exe": {
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
             "graphics" : true,
-            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe"
+            "download": true
         }
-    },
+    }, 
     "github": {
         "SecureUxTheme.exe": {
-            "author": "namazso"
+            "author": "namazso",
+            "download": true
         },
         "winget-cli.msxibundle": {
-            "author": "Microsoft"
+            "author": "Microsoft",
+            "download": false
         },
         "HandheldCompanion.exe": {
-            "author": "Valkirie"
+            "author": "Valkirie",
+            "download": true
+        },
+        "dlss-swapper.exe": {
+            "author": "beeradmoore",
+            "download": false
+        }
+        
+    },
+    "winget":{
+        "IridiumIO.CompactGUI": {
+            "download": true
+        },
+        "git.git": {
+            "download": true
         }
     },
-    "chocoPackages": [
-        "steam",
-        "memreduct",
-        "windhawk"       
-    ],
-    "license": "MIT"
+    "chocoPackages": {
+        "steam": {
+            "download": true
+        },
+        "memreduct": {
+            "download": true
+        },
+        "windhawk": {
+            "download": true
+        },
+        "dlss-swapper": {
+            "download": true
+        },
+        "winget": {
+            "download": true
+        },
+        "winaero-tweaker": {
+            "download": true
+        },
+        "amd-ryzen-chipset": {
+            "download": true
+        },
+        "intel-arc-graphics-driver": {
+            "download": false
+        },
+        "intel-chipset-device-software": {
+            "download": false
+        },
+        "7zip.install": {
+            "download": true
+        },
+        "everything": {
+            "download": true
+        },
+        "winbtrfs": {
+            "download": true,
+            "version": "1.9.0"
+        },
+        "autologon": {
+            "download": true
+        }
+    }
 }
