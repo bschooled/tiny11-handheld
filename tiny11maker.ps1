@@ -472,7 +472,30 @@ $packages = & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Get-Provision
             $matches[1]
         }
     }
-$packagePrefixes = 'Clipchamp.Clipchamp_', 'Microsoft.Windows.PeopleExperienceHost_', 'Windows.CBSPreview_', 'Microsoft.BingNews_', 'Microsoft.BingWeather_', 'Microsoft.GetHelp_', 'Microsoft.Getstarted_', 'Microsoft.MicrosoftOfficeHub_', 'Microsoft.MicrosoftSolitaireCollection_', 'Microsoft.People_', 'Microsoft.PowerAutomateDesktop_', 'Microsoft.Todos_', 'Microsoft.WindowsAlarms_', 'microsoft.windowscommunicationsapps_', 'Microsoft.WindowsFeedbackHub_', 'Microsoft.WindowsMaps_', 'Microsoft.WindowsSoundRecorder_', 'Microsoft.YourPhone_', 'Microsoft.ZuneMusic_', 'Microsoft.ZuneVideo_', 'MicrosoftCorporationII.MicrosoftFamily_', 'MicrosoftCorporationII.QuickAssist_', 'MicrosoftTeams_', 'Microsoft.549981C3F5F10_'
+$packagePrefixes = 'Clipchamp.Clipchamp_', 
+'Microsoft.Windows.PeopleExperienceHost_', 
+'Windows.CBSPreview_', 
+'Microsoft.BingNews_', 
+'Microsoft.BingWeather_', 
+'Microsoft.GetHelp_', 
+'Microsoft.Getstarted_', 
+'Microsoft.MicrosoftOfficeHub_', 
+'Microsoft.MicrosoftSolitaireCollection_', 
+'Microsoft.People_', 
+'Microsoft.PowerAutomateDesktop_', 
+'Microsoft.Todos_', 
+'Microsoft.WindowsAlarms_', 
+'microsoft.windowscommunicationsapps_', 
+'Microsoft.WindowsFeedbackHub_', 
+'Microsoft.WindowsMaps_', 
+'Microsoft.WindowsSoundRecorder_', 
+'Microsoft.YourPhone_', 
+'Microsoft.ZuneMusic_', 
+'Microsoft.ZuneVideo_', 
+'MicrosoftCorporationII.MicrosoftFamily_', 
+'MicrosoftCorporationII.QuickAssist_', 
+'MicrosoftTeams_', 
+'Microsoft.549981C3F5F10_'
 
 $packagesToRemove = $packages | Where-Object {
     $packageName = $_
@@ -487,13 +510,13 @@ Write-Host "Removing of system apps complete! Now proceeding to removal of syste
 Start-Sleep -Seconds 1
 
 $Global:packagePatterns = @(
-    "Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-Handwriting-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-OCR-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-Speech-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-TextToSpeech-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-MediaPlayer-Package~31bf3856ad364e35",
-    "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35",
+    "Microsoft-Windows-InternetExplorer-Optional-Package",
+    "Microsoft-Windows-LanguageFeatures-Handwriting-$($languageCode)",
+    "Microsoft-Windows-LanguageFeatures-OCR-$($languageCode)",
+    "Microsoft-Windows-LanguageFeatures-Speech-$($languageCode)",
+    "Microsoft-Windows-LanguageFeatures-TextToSpeech-$($languageCode)",
+    "Microsoft-Windows-MediaPlayer~",
+    "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~",
     "Microsoft-Windows-WordPad-FoD-Package~",
     "Microsoft-Windows-TabletPCMath-Package~",
     "Microsoft-Windows-StepsRecorder-Package~"
@@ -502,6 +525,7 @@ $Global:packagePatterns = @(
 # Get all packages
 $allPackages = & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Get-Packages /Format:Table
 $allPackages = $allPackages -split "`n" | Select-Object -Skip 1
+Write-Output -InputObject $allPackages
 
 foreach ($packagePattern in $packagePatterns) {
     # Filter the packages to remove
