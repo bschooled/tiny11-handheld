@@ -3,13 +3,16 @@ param (
     [Parameter()]
     [string]$DownloadPath = "C:\packages",
     [Parameter()]
-    [switch]$CheckGraphics
+    [switch]$CheckGraphics,
+    [Parameter()]
+    [switch]$SkipInstall = $false
 )
 
 Start-Transcript -Path "$PSScriptRoot\postInstall.log" -Append -NoClobber -Force
 
 #import packages.json
-$packages = Get-Content ".\packages.json" | ConvertFrom-Json
+Write-Host "Importing $PSScriptRoot\packages.json..."
+$packages = Get-Content "$PSScriptRoot\packages.json" | ConvertFrom-Json
 
 if($(Get-Module PowerShellForGitHub -ListAvailable)){
     Write-Host "PowerShellForGitHub module is already installed."
@@ -18,6 +21,7 @@ else{
     Write-Host "Installing PowerShellForGitHub module..."
     Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
     Import-Module PowerShellForGitHub -Force -ErrorAction Stop
+    Set-GitHubConfiguration -DisableTelemetry
 }
 
 $Global:vendorHash = @{
@@ -43,11 +47,11 @@ function Optimize-Memory(){
         $setting = $setting.ToString()
         if ($($(Get-MMAgent).$setting) -eq $true -and $setting -notlike "MaxOperationAPIFiles") {
             Write-Host "Enabling $setting..."
-            Invoke-Expression -Command "Enable-MMAgent -$setting"
+            Invoke-Expression -Command "Enable-MMAgent -$setting -ErrorAction SilentlyContinue"
         }
         elseif ($setting -like "MaxOperationAPIFiles" -and $($(Get-MMAgent).$setting) -lt 8192) {
             Write-Host "Setting $setting to $($settings[$setting])..."
-            Invoke-Expression -Command "Set-MMAgent -$setting $($settings[$setting])"
+            Invoke-Expression -Command "Set-MMAgent -$setting $($settings[$setting]) -ErrorAction SilentlyContinue"
         } 
         else {
             Write-Host "No changes needed for $setting."
@@ -65,33 +69,50 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
     } 
 
     if ($githubDownload -eq $true) {
+        Write-Host "`tGithub download is true, downloading $package from GitHub."
         $extension = $package.Split(".")[-1]
-        $repoName = $package.TrimEnd(".$extension")
+        Write-Host "`tExtension is $extension"
+        $repoName = $package -replace "\.$extension$", ""
         $filePath = Join-Path -Path $DownloadPath -ChildPath $package
-        $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author)[0].assets.browser_download_url
-
-        if (-not (Test-Path $filePath)) {
-            Write-Host "Downloading $downloadURL to $filePath"
+        Write-host "`tFile Path is $filePath"
+        Write-Host "`tRepo Name is $repoName and owner is $($packageProperties.author)"
+        if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
+            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author | select -First 1).assets.browser_download_url
+            if($downloadURL.Count -gt 1 -and -not [string]::IsNullOrEmpty("$($downloadURL -match 'amd64')")){
+                Write-Host "`tMultiple download URLs found, pattern match for amd64, setting to matching URL"
+                $downloadURL = $downloadURL -match 'amd64'
+            }
+            else{
+                Write-Host "`tMultiple download URL found, setting to first URL"
+                $downloadURL = $downloadURL[0]
+            }
+            Write-Host "`tDownload URL is $downloadURL"
+            Write-Host "`tDownloading $downloadURL to $filePath"
             Start-BitsTransfer -Source $downloadURL -Destination $filePath -DisplayName $repoName -TransferType Download -ErrorAction Stop
-        } else {
-            Write-Host "$package already exists, skipping download."
+        } 
+        else {
+            Write-Host "`t$package already exists, skipping download..."
         } 
     }
     else{
+        Write-Host "Github download is false, downloading $package from URL."
         $filePath = Join-Path -Path $DownloadPath -ChildPath $package
-        if (-not (Test-Path $filePath)) {
-            Write-Host "Downloading $($packageProperties.url) to $filePath"
+        Write-Host "`tFile Path is $filePath"
+        if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
+            Write-Host "`tDownloading $($packageProperties.url) to $filePath"
             Start-BitsTransfer -Source $packageProperties.url -Destination $filePath -DisplayName $package -TransferType Download -ErrorAction Stop
         } else {
-            Write-Host "$package skipping download."
+            Write-Host "`t$package already exists, skipping download..."
         }
     }
 }
 
 function Extract-Packages($DownloadPath,$package,$packageName){
-
-    $extractPath = "$($DownloadPath)\extracted\$packagePath"
-    If(-not $(Test-Path $extractPath)){
+    Write-Host "`tExtracting $package..."
+    $extractPath = "$($DownloadPath)\extracted\$packageName"
+    Write-Host `t"Extracting to $extractPath"
+    If(-not $(Test-Path $extractPath -ErrorAction SilentlyContinue)){
+        Write-Host "`tCreating $extractPath directory..."
         New-Item -Path $extractPath -ItemType Directory | Out-Null
     } 
     #Extract the files using 7z
@@ -104,39 +125,45 @@ function Check-WingetInstall() {
         $wingetPath = 'winget.exe'
     }
     else {
-        $wingetPath = $(Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe" -ErrorAction SilentlyContinue).FullName
+        $wingetPath = $(Get-ChildItem "C:\Program Files\WindowsApps" -Recurse -Include "winget.exe" -ErrorAction SilentlyContinue| select -First 1).FullName
 
-        if(-not $wingetPath){
-            $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe" -ErrorAction SilentlyContinue).FullName
+        if([string]::IsNullOrEmpty("$wingetPath")){
+            $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe" -ErrorAction SilentlyContinue | select -First 1).FullName
         }        <# Action when all if and elseif conditions are false #>
     }
+    Write-Host "Final winget path is $wingetPath"
     return $wingetPath
 }
 
 function Install-ChocoPackages($package, $packageProperties) {
 
-    if([string]::IsNullOrEmpty("$(choco list $packageName | Select-String -Pattern '0')")){
+    if([string]::IsNullOrEmpty("$(choco list $package | Select-String -Pattern '1')")){
         if($null -ne $packageProperties.version){
-            Write-Host "Installing $package using Chocolatey"
+            Write-Host "`tInstalling $package using Chocolatey"
             choco install $package --yes --no-prompt --accept-package-agreements --accept-source-agreements --version $packageProperties.version
         }
         else{
-            Write-Host "Installing $package using Chocolatey"
+            Write-Host "`tInstalling $package using Chocolatey"
             choco install $package --yes --no-prompt --accept-package-agreements --accept-source-agreements
         }
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     }
     else{
-        Write-Host "$package is already installed, skipping installation."
+        Write-Host "`t$package is already installed, skipping installation."
     }
 }
 
 function Install-Dependencies($package, $packageProperties, $packageFull) {
     if($package -like "choco"){
-        Write-Host "Chocolatey is not installed. Installing Chocolatey..."
-        Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
-        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+        if($(Get-Command choco.exe -ErrorAction SilentlyContinue)){
+            Write-Host "Chocolatey is already installed, skipping installation."
+        }
+        else{
+            Write-Host "Chocolatey is not installed. Installing Chocolatey..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+        }
     }
     elseif($packageProperties.url -like "choco"){
         $packageProperties = $packageFull.chocoPackages.$package
@@ -148,7 +175,7 @@ function Install-Dependencies($package, $packageProperties, $packageFull) {
     }
     elseif($packageProperties.url -like "exes"){
         $packageProperties = $packageFull.exes.$package
-        Download-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties -githubDownload $false
+        Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $false
         Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
     }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
@@ -158,19 +185,19 @@ function Install-WingetPackages($package, $packageProperties) {
     $wingetStatus = Check-WingetInstall
 
     if($wingetStatus -eq "winget.exe"){
-        Write-Host "Installing $package using winget"
+        Write-Host "Installing $package using winget on path"
         winget.exe install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
     }
     else{
-        Write-Host "Installing $package using winget"
-        & $wingetPath install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+        Write-Host "Installing $package using winget with direct executable path"
+        & $wingetStatus install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
     }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
 function Install-Packages($DownloadPath,$package,$packageProperties){
     $extension = $package.Split(".")[-1]
-    $packageName = $package.TrimEnd(".$extension")
+    $packageName = $package -replace "\.$extension$", ""
 
     if($packageName -like "AMDSoftware"){
         #Install the packages using the extracted files
@@ -184,25 +211,31 @@ function Install-Packages($DownloadPath,$package,$packageProperties){
         Write-Host "Installing Intel Graphics Driver"
         Start-Process -FilePath "$downloadPath\$package" -ArgumentList '-p' -Wait
     }
-    elseif ($packageName -like ".zip"){
+    elseif ($extension -like "zip"){
         Write-Host "Installing $package using 7z"
         Extract-Packages -DownloadPath $DownloadPath -packageName $packageName -package $package
-        $exeFile = Get-ChildItem "$downloadPath\extracted\$packageName\*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 | select -ExpandProperty Name
+        $exeFile = Get-ChildItem "$downloadPath\extracted\$packageName\setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 | select -ExpandProperty Name
         if ($null -ne $exeFile) {
-            Write-Host "No executable found in the extracted files, trying for .msi file."
-            $exeFile = Get-ChildItem "$downloadPath\extracted\$packageName\*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1 | select -ExpandProperty Name
+            Write-Host "No setup executable found in the extracted files, trying for .msi file."
+            $exeFile = Get-ChildItem "$downloadPath\extracted\$packageName\setup.msi" -ErrorAction SilentlyContinue | Select-Object -First 1 | select -ExpandProperty Name
         }
 
-        try {
-            Write-Host "Attempting to install $downloadPath\$package"
-            Start-Process -FilePath "$downloadPath\extracted\$packageName\$exeFile" -ArgumentList "/SILENT /NORESTART" -Wait
+        if($null -eq $exeFile) {
+            Write-Host "No setup executable found in the extracted files, skipping installation."
         }
-        catch {
-            Write-Host "Failed to install with /SILENT switch, will try with /S"
-            Start-Process -FilePath "$downloadPath\extracted\$packageName\$exeFile" -ArgumentList "/S" -Wait
+        else{
+            try {
+                Write-Host "Attempting to install $downloadPath\$package"
+                Start-Process -FilePath "$downloadPath\extracted\$packageName\$exeFile" -ArgumentList "/SILENT /NORESTART" -Wait
+            }
+            catch {
+                Write-Host "Failed to install with /SILENT switch, will try with /S"
+                Start-Process -FilePath "$downloadPath\extracted\$packageName\$exeFile" -ArgumentList "/S" -Wait
+            }
         }
+
     }
-    elseif ($packageName -like ".msxibundle"){
+    elseif ($extension -like "msxibundle"){
         Write-Host "Installing $package using Add-AppxPackage"
         Add-AppxPackage -Path "$downloadPath\$package" -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register
     }
@@ -241,77 +274,108 @@ $exes = $packages.exes | Get-Member -MemberType NoteProperty | select -ExpandPro
 $github = $packages.github | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 $zip = $packages.zip | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 $winget = $packages.winget | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
-$choco = $packages.choco | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
+$choco = $packages.chocoPackages | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 
 
 #first install dependencies
+Write-Host "Begin installation of dependencies..."
 foreach ($package in $dependencies) {
-    Write-Host "Begin installation of dependencies..."
+    Write-Host "Dependency is $package"
     $packageProperties = $packages.dependencies.$package
-    Install-Dependencies -package $package -packageProperties $packageProperties -packageFull $packages
+    Install-Dependencies -package $package -packageProperties $packageProperties -packageFull $packages  
 }
 
 #download and install the exe packages
+Write-Host "Begin installation of exe packages..."
 foreach ($package in $exes) {
-    Write-Host "Begin installation of exe packages..."
+    Write-Host "Exe package is $package"
     $packageProperties = $packages.exes.$package
 
     if($packageProperties.download -eq 'true'){
-        Download-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties -githubDownload $false
-        Install-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties
+        Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $false
+        if(-not $SkipInstall){
+            Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
+        }
+        else{
+            Write-Host "`tSkipInstall is set, would install $package, but skipping..."
+        }
     }
     else{
-        Write-Host "$package is not set to download, skipping..."
+        Write-Host "`t$package is not set to download, skipping..."
     }
 }
 
 #download and install the github packages
+Write-Host "Begin installation of github packages..."
 foreach ($package in $github) {
-    Write-Host "Begin installation of github packages..."
+    Write-Host "Github package is $package"
     $packageProperties = $packages.github.$package
     if($packageProperties.download -eq 'true'){
-        Download-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties -githubDownload $true
-        Install-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties
+        Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $true
+        if(-not $SkipInstall){
+            Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
+        }
+        else{
+            Write-Host "`tSkipInstall is set, would install $package, but skipping..."
+        }
     }
     else{
-        Write-Host "$package is not set to download, skipping..."
+        Write-Host "`t$package is not set to download, skipping..."
     }
 }
 
 #download and install the zip packages
+Write-Host "Begin installation of zip packages..."
 foreach ($package in $zip) {
-    Write-Host "Begin installation of zip packages..."
+    Write-Host "Zip package is $package"
     $packageProperties = $packages.zip.$package
     if($packageProperties.download -eq 'true'){
-        Download-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties -githubDownload $false
-        Install-Packages -DownloadPath $DownloadPath -packageName $package -packageProperties $packageProperties
+        Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $false
+        if(-not $SkipInstall){
+            Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
+        }
+        else{
+            Write-Host "`tSkipInstall is set, would install $package, but skipping..."
+        }
     }
     else{
-        Write-Host "$package is not set to download, skipping..."
+        Write-Host "`t$package is not set to download, skipping..."
     }
 }
 
 #download and install the winget packages
+Write-Host "Begin installation of winget packages..."
 foreach ($package in $winget) {
-    Write-Host "Begin installation of winget packages..."
+    Write-Host "Winget package is $package"
     $packageProperties = $packages.winget.$package
     if($packageProperties.download -eq 'true'){
-        Install-WingetPackages -package $package -packageProperties $packageProperties
+        if(-not $SkipInstall){
+            Install-WingetPackages -package $package -packageProperties $packageProperties
+        }
+        else{
+            Write-Host "`tSkipInstall is set, would install $package, but skipping..."
+        }
     }
     else{
-        Write-Host "$package is not set to download, skipping..."
+        Write-Host "`t$package is not set to download, skipping..."
     }
 }
 
 #download and install the choco packages
+Write-Host "Begin installation of choco packages..."
 foreach ($package in $choco) {
-    Write-Host "Begin installation of choco packages..."
-    $packageProperties = $packages.choco.$package
+    Write-Host "Choco package is $package"
+    $packageProperties = $packages.chocoPackages.$package
     if($packageProperties.download -eq 'true'){
-        Install-ChocoPackages -package $package -packageProperties $packageProperties
+        if(-not $SkipInstall){
+            Install-ChocoPackages -package $package -packageProperties $packageProperties
+        }
+        else{
+            Write-Host "`tSkipInstall is set, would install $package, but skipping..."
+        }
     }
     else{
-        Write-Host "$package is not set to download, skipping..."
+        Write-Host "`t$package is not set to download, skipping..."
     }
 }
 

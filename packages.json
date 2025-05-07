@@ -36,11 +36,11 @@
         "AMDSoftware.exe": {
             "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
             "graphics" : true,
-            "download": true
+            "download": false
         }
     }, 
     "github": {
-        "SecureUxTheme.exe": {
+        "SecureUxTheme.zip": {
             "author": "namazso",
             "download": true
         },
@@ -80,13 +80,13 @@
             "download": true
         },
         "winget": {
-            "download": true
+            "download": false
         },
         "winaero-tweaker": {
             "download": true
         },
         "amd-ryzen-chipset": {
-            "download": true
+            "download": false
         },
         "intel-arc-graphics-driver": {
             "download": false
@@ -110,6 +110,9 @@
         "g-helper": {
             "download": false,
             "version": "0.207.0"
+        },
+        "VBoxGuestAdditions.install": {
+            "download": true
         }
     }
 }
