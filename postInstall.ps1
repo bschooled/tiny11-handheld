@@ -8,6 +8,8 @@ param (
     [switch]$SkipInstall = $false
 )
 
+$ErrorActionPreference = 'Continue'
+
 Start-Transcript -Path "$PSScriptRoot\postInstall.log" -Append -NoClobber -Force
 
 #import packages.json
@@ -18,11 +20,14 @@ if($(Get-Module PowerShellForGitHub -ListAvailable)){
     Write-Host "PowerShellForGitHub module is already installed."
 }
 else{
+    Install-PackageProvider -Name NuGet -Scope CurrentUser -Force -ErrorAction Stop -Confirm:$false
     Write-Host "Installing PowerShellForGitHub module..."
     Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
     Import-Module PowerShellForGitHub -Force -ErrorAction Stop
     Set-GitHubConfiguration -DisableTelemetry
 }
+
+
 
 $Global:vendorHash = @{
     "AMD Software" = '1002'
@@ -77,7 +82,7 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
         Write-host "`tFile Path is $filePath"
         Write-Host "`tRepo Name is $repoName and owner is $($packageProperties.author)"
         if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
-            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author | select -First 1).assets.browser_download_url
+            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author).assets.browser_download_url
             if($downloadURL.Count -gt 1 -and -not [string]::IsNullOrEmpty("$($downloadURL -match 'amd64')")){
                 Write-Host "`tMultiple download URLs found, pattern match for amd64, setting to matching URL"
                 $downloadURL = $downloadURL -match 'amd64'
@@ -270,12 +275,21 @@ function CheckVenID($packageName){
 Optimize-Memory
 
 $dependencies = $packages.dependencies | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
+# Custom sort function to ensure choco is installed first
+$sortedNames = $dependencies| Sort-Object { 
+    if ($_ -eq "choco") { 
+        return -1 
+    } else { 
+        return 1 
+    }
+}
+$dependencies = $sortedNames
+
 $exes = $packages.exes | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 $github = $packages.github | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 $zip = $packages.zip | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 $winget = $packages.winget | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
 $choco = $packages.chocoPackages | Get-Member -MemberType NoteProperty | select -ExpandProperty Name
-
 
 #first install dependencies
 Write-Host "Begin installation of dependencies..."
