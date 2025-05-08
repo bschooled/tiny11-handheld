@@ -19,42 +19,61 @@
         "Intel Arc.exe": {
             "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe",
             "graphics" : true,
-            "download": false
+            "download": false,
+            "install": false
         },
         "everything.exe": {
             "url": "https://www.voidtools.com/Everything-1.4.1.1026.x64-Setup.exe",
             "graphics" : false,
-            "download": false
+            "download": false,
+            "install": false
+        },
+        "parsec.exe": {
+            "url": "https://builds.parsec.app/package/parsec-windows.exe",
+            "graphics" : false,
+            "download": true,
+            "install": true
         }
     },
     "zip" : {
         "Autologon.zip": {
             "url": "https://download.sysinternals.com/files/AutoLogon.zip",
             "graphics" : false,
-            "download": false
+            "download": false,
+            "install": false
         },
         "AMDSoftware.exe": {
             "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
             "graphics" : true,
-            "download": false
+            "download": false,
+            "install": false
         }
     }, 
     "github": {
         "SecureUxTheme.zip": {
             "author": "namazso",
-            "download": true
+            "download": true,
+            "install": false
         },
         "winget-cli.msxibundle": {
             "author": "Microsoft",
-            "download": false
+            "download": false,
+            "install": false
         },
         "HandheldCompanion.exe": {
             "author": "Valkirie",
-            "download": true
+            "download": true,
+            "install": true
         },
         "dlss-swapper.exe": {
             "author": "beeradmoore",
-            "download": false
+            "download": false,
+            "install": false
+        },
+        "HackBGRT.zip": {
+            "author": "Metabolix",
+            "download": true,
+            "install": false
         }
         
     },
@@ -86,12 +105,6 @@
             "download": true
         },
         "amd-ryzen-chipset": {
-            "download": false
-        },
-        "intel-arc-graphics-driver": {
-            "download": false
-        },
-        "intel-chipset-device-software": {
             "download": false
         },
         "7zip.install": {

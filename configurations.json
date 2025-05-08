@@ -1,15 +1,28 @@
 {
-    "settings": {
-        "theme": "light",
-        "language": "en-US",
-        "notifications": true
+    "memreduct": {
+        "regFile": "\\configurations\\memreduct\\memreduct.reg",
+        "configFiles": [
+            {
+                "Item1": {"C:\\Program Files\\Mem Reduct": "\\configurations\\memreduct\\memreduct.ini"},
+                "Item2": {"C:\\Users\\Brad\\AppData\\Roaming\\Henry++\\Mem Reduct": "\\configurations\\memreduct\\memreduct.ini"} 
+            }
+        ]
     },
-    "user": {
-        "name": "default",
-        "email": "user@example.com"
+    "compactGUI": {
+        "regFile": "",
+        "configFiles":[
+            {
+                "Item1": {"C:\\Users\\$env:USERNAME\\AppData\\Local\\IridiumIO\\CompactGUI": "\\configurations\\compactGUI\\settings.json"},
+                "Item2": {"C:\\Users\\$env:USERNAME\\AppData\\Local\\IridiumIO\\CompactGUI": "\\configurations\\compactGUI\\watcher.json"}
+            }
+        ]
     },
-    "features": {
-        "enabled": [],
-        "disabled": []
+    "everything": {
+        "regFile": "",
+        "configFiles":[
+            {
+                "Item1": {"C:\\Users\\$env:USERNAME\\AppData\\Roaming\\Everything": "\\configurations\\everything\\Everything.ini"}
+            }
+        ]
     }
 }

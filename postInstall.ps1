@@ -307,7 +307,7 @@ foreach ($package in $exes) {
 
     if($packageProperties.download -eq 'true'){
         Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $false
-        if(-not $SkipInstall){
+        if(-not $SkipInstall -and $packageProperties.install -eq 'true'){
             Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
         }
         else{
@@ -326,7 +326,7 @@ foreach ($package in $github) {
     $packageProperties = $packages.github.$package
     if($packageProperties.download -eq 'true'){
         Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $true
-        if(-not $SkipInstall){
+        if(-not $SkipInstall -and $packageProperties.install -eq 'true'){
             Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
         }
         else{
@@ -345,7 +345,7 @@ foreach ($package in $zip) {
     $packageProperties = $packages.zip.$package
     if($packageProperties.download -eq 'true'){
         Download-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties -githubDownload $false
-        if(-not $SkipInstall){
+        if(-not $SkipInstall -and $packageProperties.install -eq 'true'){
             Install-Packages -DownloadPath $DownloadPath -package $package -packageProperties $packageProperties
         }
         else{
@@ -393,5 +393,30 @@ foreach ($package in $choco) {
     }
 }
 
+#get ready for reboot steps
+Write-Host "Clone repo for configurations..."
+if(-not $(Test-Path "C:\packages" -ErrorAction SilentlyContinue)){
+    Write-Host "Creating C:\packages directory..."
+    New-Item -Path "C:\packages" -ItemType Directory | Out-Null
+}
+else{
+    Write-Host "C:\packages directory already exists, skipping creation..."
+}
+Set-Location -Path "C:\packages"
+git clone "https://github.com/bschooled/tiny11-handheld.git" -q -b dev
+Set-Location -Path "C:\packages\tiny11-handheld"
+# Add postInstallConfiguration.ps1 as a runonce script
+$runOnceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
+$scriptPath = "$PSScriptRoot\postInstallConfiguration.ps1"
+
+if (-not (Test-Path $runOnceKey -ErrorAction SilentlyContinue)) {
+    New-Item -Path $runOnceKey -Force | Out-Null
+}
+
+Set-ItemProperty -Path $runOnceKey -Name "PostInstallConfig" -Value "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`""
+Write-Host "postInstallConfiguration.ps1 has been added as a RunOnce script."
 Stop-Transcript 
+
+Write-Host "Going for reboot..."
+Shutdown.exe /F /R /T 15
 exit;
