@@ -194,7 +194,6 @@ $selectors = @(
 	'Microsoft.Paint';
 	'Microsoft.MSPaint';
 	'Microsoft.People';
-	'Microsoft.Windows.Photos';
 	'Microsoft.PowerAutomateDesktop';
 	'MicrosoftCorporationII.QuickAssist';
 	'Microsoft.SkypeApp';
@@ -260,7 +259,6 @@ $selectors = @(
 	'Microsoft.Windows.MSPaint';
 	'Microsoft.Windows.PowerShell.ISE';
 	'App.Support.QuickAssist';
-	'Microsoft.Windows.SnippingTool';
 	'Language.Speech';
 	'Language.TextToSpeech';
 	'App.StepsRecorder';
@@ -400,7 +398,7 @@ Set-ItemProperty -LiteralPath $key -Name 'ConfigureStartPins' -Value $json -Type
 &lt;/LayoutModificationTemplate&gt;
 		</File>
 		<File path="C:\Windows\Setup\Scripts\unattend-01.ps1">
-powershell.exe -File C:\postInstall.ps1 -CheckGraphics;
+powershell.exe -File C:\postInstall.ps1 -InjectOEM;
 		</File>
 		<File path="C:\Windows\Setup\Scripts\Specialize.ps1">
 $scripts = @(

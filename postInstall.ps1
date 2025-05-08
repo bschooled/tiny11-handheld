@@ -315,10 +315,16 @@ if($InjectOEM){
     else{
         $oemExes = Get-ChildItem -Path $oemFolder *.exe
         foreach ($oemExe in $oemExes) {
-            Write-Host "Installing OEM package $($oemExe.Name)"
-            $Global:oemPath = $oemExe.FullName
-            $Global:oemName = $oemExe.Name
-            Install-Packages -InjectOEM $true
+            try{
+                Write-Host "Installing OEM package $($oemExe.Name)"
+                $Global:oemPath = $oemExe.FullName
+                $Global:oemName = $oemExe.Name
+                Install-Packages -InjectOEM $true
+            }
+            catch {
+                Write-Host "Failed to install OEM package $($oemExe.Name)"
+            }
+
         }
     }
 }
