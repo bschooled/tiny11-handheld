@@ -6,3 +6,4 @@ drivers/
 amd64/
 scratchdir/
 tiny11/
+oem/

@@ -5,7 +5,9 @@ param (
     [Parameter()]
     [switch]$CheckGraphics,
     [Parameter()]
-    [switch]$SkipInstall = $false
+    [switch]$SkipInstall = $false,
+    [Parameter()]
+    [switch]$InjectOEM = $false
 )
 
 $ErrorActionPreference = 'Continue'
@@ -200,9 +202,11 @@ function Install-WingetPackages($package, $packageProperties) {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
-function Install-Packages($DownloadPath,$package,$packageProperties){
-    $extension = $package.Split(".")[-1]
-    $packageName = $package -replace "\.$extension$", ""
+function Install-Packages($DownloadPath,$package,$packageProperties,$InjectOEM){
+    if (-not [string]::IsNullOrEmpty($($package))){
+        $extension = $package.Split(".")[-1]
+        $packageName = $package -replace "\.$extension$", ""
+    }
 
     if($packageName -like "AMDSoftware"){
         #Install the packages using the extracted files
@@ -243,6 +247,10 @@ function Install-Packages($DownloadPath,$package,$packageProperties){
     elseif ($extension -like "msxibundle"){
         Write-Host "Installing $package using Add-AppxPackage"
         Add-AppxPackage -Path "$downloadPath\$package" -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register
+    }
+    elseif ($InjectOEM -eq $true) {
+        Write-Host "Installing OEM package $Global:oemName"
+        Start-Process -FilePath $Global:OEMPath -ArgumentList "/SILENT /NORESTART" -Wait
     }
     else{
         try {
@@ -297,6 +305,22 @@ foreach ($package in $dependencies) {
     Write-Host "Dependency is $package"
     $packageProperties = $packages.dependencies.$package
     Install-Dependencies -package $package -packageProperties $packageProperties -packageFull $packages  
+}
+
+if($InjectOEM){
+    $oemFolder = "C:\OEM"
+    if(-not $(Test-Path $oemFolder -ErrorAction SilentlyContinue)){
+        Write-Host "No OEM folder found, will skip"
+    } 
+    else{
+        $oemExes = Get-ChildItem -Path $oemFolder *.exe
+        foreach ($oemExe in $oemExes) {
+            Write-Host "Installing OEM package $($oemExe.Name)"
+            $Global:oemPath = $oemExe.FullName
+            $Global:oemName = $oemExe.Name
+            Install-Packages -InjectOEM $true
+        }
+    }
 }
 
 #download and install the exe packages
@@ -407,7 +431,7 @@ git clone "https://github.com/bschooled/tiny11-handheld.git" -q -b dev
 Set-Location -Path "C:\packages\tiny11-handheld"
 # Add postInstallConfiguration.ps1 as a runonce script
 $runOnceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
-$scriptPath = "$PSScriptRoot\postInstallConfiguration.ps1"
+$scriptPath = "C:\packages\tiny11-handheld\postInstallConfiguration.ps1"
 
 if (-not (Test-Path $runOnceKey -ErrorAction SilentlyContinue)) {
     New-Item -Path $runOnceKey -Force | Out-Null

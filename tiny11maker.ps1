@@ -3,7 +3,8 @@ param (
     [string]$architecture = "amd64",
     [string]$ImageName = "TinyHandheld11.iso",
     [string]$ImageOutputPath = $PSScriptRoot,
-    [bool]$InjectDrivers = $false
+    [bool]$InjectDrivers = $false,
+    [bool]$InjectOEM = $false
 )
 #Uncomment the line below to enable debugging
 #Set-PSDebug -Trace 1
@@ -621,6 +622,15 @@ try{
 }
 catch {
     Write-Host "Failed to copy postInstall script. Continuing..."
+}
+
+if($InjectOEM){
+    $oemfolder = "$PSScriptRoot\oem"
+    $exes = Get-ChildItem -Path $oemfolder *.exe
+    foreach($exe in $exes) {
+        $destination = "$($ScratchDisk)$($oemfolder)\oem"
+        Copy-Item -Path $exe.FullName -Destination $destination -Force | Out-Null
+    }
 }
 
 Write-Host "Creating ISO image..."

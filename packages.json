@@ -33,6 +33,18 @@
             "graphics" : false,
             "download": true,
             "install": true
+        },
+        "startallback.exe": {
+            "url": "https://startisback.sfo3.cdn.digitaloceanspaces.com/StartAllBack_3.9.8_setup.exe",
+            "graphics" : false,
+            "download": false,
+            "install": false
+        },
+        "reshacker.exe": {
+            "url": "https://www.angusj.com/resourcehacker/reshacker_setup.exe",
+            "graphics" : false,
+            "download": false,
+            "install": false
         }
     },
     "zip" : {
@@ -45,8 +57,8 @@
         "AMDSoftware.exe": {
             "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
             "graphics" : true,
-            "download": false,
-            "install": false
+            "download": true,
+            "install": true
         }
     }, 
     "github": {
@@ -74,8 +86,12 @@
             "author": "Metabolix",
             "download": true,
             "install": false
+        },
+        "MicaForEveryone": {
+            "author": "MicaForEveryone",
+            "download": true,
+            "install": false
         }
-        
     },
     "winget":{
         "IridiumIO.CompactGUI": {
@@ -105,7 +121,7 @@
             "download": true
         },
         "amd-ryzen-chipset": {
-            "download": false
+            "download": true
         },
         "7zip.install": {
             "download": true
@@ -121,10 +137,21 @@
             "download": true
         },
         "g-helper": {
-            "download": false,
+            "download": true,
             "version": "0.207.0"
         },
         "VBoxGuestAdditions.install": {
+            "download": false
+        },
+        "rainmeter": {
+            "download": true,
+            "version": "4.5.23"
+        },
+        "StartAllBack": {
+            "download": true,
+            "version": "3.9.7"
+        },
+        "reshack": {
             "download": true
         }
     }
