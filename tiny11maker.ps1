@@ -627,8 +627,12 @@ catch {
 if($InjectOEM){
     $oemfolder = "$PSScriptRoot\oem"
     $exes = Get-ChildItem -Path $oemfolder *.exe
+    if(-not $(Test-Path "$($ScratchDisk)$($rootoemfolder)\oem")) {
+        New-Item -ItemType Directory -Force -Path "$($ScratchDisk)$($rootoemfolder)\oem" | Out-Null
+    }
     foreach($exe in $exes) {
-        $destination = "$($ScratchDisk)$($oemfolder)\oem"
+        Write-Host "Copying $($exe.Name) to $($ScratchDisk)$($rootoemfolder)\oem"
+        $destination = "$($ScratchDisk)$($rootoemfolder)\oem"
         Copy-Item -Path $exe.FullName -Destination $destination -Force | Out-Null
     }
 }
