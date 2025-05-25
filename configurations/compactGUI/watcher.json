@@ -1,0 +1,18 @@
+{
+  "Item1": "0001-01-01T00:00:00",
+  "Item2": [
+    {
+      "Folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common",
+      "DisplayName": "C:\\Program Files (x86)\\Steam\\steamapps\\common",
+      "IsSteamGame": false,
+      "LastCompressedDate": "0001-01-01T00:00:00",
+      "LastCompressedSize": 0,
+      "LastUncompressedSize": 0,
+      "LastSystemModifiedDate": "0001-01-01T00:00:00",
+      "LastCheckedDate": "0001-01-01T00:00:00",
+      "LastCheckedSize": 0,
+      "CompressionLevel": -2,
+      "DecayPercentage": 1
+    }
+  ]
+}

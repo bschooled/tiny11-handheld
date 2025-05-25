@@ -3,7 +3,8 @@ param (
     [string]$architecture = "amd64",
     [string]$ImageName = "TinyHandheld11.iso",
     [string]$ImageOutputPath = $PSScriptRoot,
-    [bool]$InjectDrivers = $false
+    [bool]$InjectDrivers = $false,
+    [bool]$InjectOEM = $false
 )
 #Uncomment the line below to enable debugging
 #Set-PSDebug -Trace 1
@@ -189,6 +190,13 @@ function Disable-Bing(){
     & 'reg' 'add' 'HKLM\zNTUSER\Software\Policies\Microsoft\Windows\Explorer' > $null 2>&1
     & 'reg' 'add' 'HKLM\zNTUSER\Software\Policies\Microsoft\Windows\Explorer' '/v' 'ShowRunAsDifferentUserInStart' '/t' 'REG_DWORD' '/d' '1' '/f' > $null 2>&1
     & 'reg' 'add' 'HKLM\zNTUSER\Software\Policies\Microsoft\Windows\Explorer' '/v' 'DisableSearchBoxSuggestions' '/t' 'REG_DWORD' '/d' '1' '/f' > $null 2>&1
+}
+
+function Disable-CoreIsolation(){
+    Write-Host "Disabling Core Isolation..."
+    & 'reg' 'add' 'HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard' '/v' 'EnableVirtualizationBasedSecurity' '/t' 'REG_DWORD' '/d' '0' '/f' > $null 2>&1
+    & 'reg' 'add' 'HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard' '/v' 'RequirePlatformSecurityFeatures' '/t' 'REG_DWORD' '/d' '0' '/f' > $null 2>&1
+    & 'reg' 'add' 'HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' '/v' 'Enabled' '/t' 'REG_DWORD' '/d' '0' '/f' > $null 2>&1
 }
 
 function Mount-Registry(){
@@ -465,7 +473,30 @@ $packages = & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Get-Provision
             $matches[1]
         }
     }
-$packagePrefixes = 'Clipchamp.Clipchamp_', 'Microsoft.Windows.PeopleExperienceHost_', 'Windows.CBSPreview_', 'Microsoft.BingNews_', 'Microsoft.BingWeather_', 'Microsoft.GamingApp_', 'Microsoft.GetHelp_', 'Microsoft.Getstarted_', 'Microsoft.MicrosoftOfficeHub_', 'Microsoft.MicrosoftSolitaireCollection_', 'Microsoft.People_', 'Microsoft.PowerAutomateDesktop_', 'Microsoft.Todos_', 'Microsoft.WindowsAlarms_', 'microsoft.windowscommunicationsapps_', 'Microsoft.WindowsFeedbackHub_', 'Microsoft.WindowsMaps_', 'Microsoft.WindowsSoundRecorder_', 'Microsoft.Xbox.TCUI_', 'Microsoft.XboxGamingOverlay_', 'Microsoft.XboxGameOverlay_', 'Microsoft.XboxSpeechToTextOverlay_', 'Microsoft.YourPhone_', 'Microsoft.ZuneMusic_', 'Microsoft.ZuneVideo_', 'MicrosoftCorporationII.MicrosoftFamily_', 'MicrosoftCorporationII.QuickAssist_', 'MicrosoftTeams_', 'Microsoft.549981C3F5F10_'
+$packagePrefixes = 'Clipchamp.Clipchamp_', 
+'Microsoft.Windows.PeopleExperienceHost_', 
+'Windows.CBSPreview_', 
+'Microsoft.BingNews_', 
+'Microsoft.BingWeather_', 
+'Microsoft.GetHelp_', 
+'Microsoft.Getstarted_', 
+'Microsoft.MicrosoftOfficeHub_', 
+'Microsoft.MicrosoftSolitaireCollection_', 
+'Microsoft.People_', 
+'Microsoft.PowerAutomateDesktop_', 
+'Microsoft.Todos_', 
+'Microsoft.WindowsAlarms_', 
+'microsoft.windowscommunicationsapps_', 
+'Microsoft.WindowsFeedbackHub_', 
+'Microsoft.WindowsMaps_', 
+'Microsoft.WindowsSoundRecorder_', 
+'Microsoft.YourPhone_', 
+'Microsoft.ZuneMusic_', 
+'Microsoft.ZuneVideo_', 
+'MicrosoftCorporationII.MicrosoftFamily_', 
+'MicrosoftCorporationII.QuickAssist_', 
+'MicrosoftTeams_', 
+'Microsoft.549981C3F5F10_'
 
 $packagesToRemove = $packages | Where-Object {
     $packageName = $_
@@ -480,13 +511,13 @@ Write-Host "Removing of system apps complete! Now proceeding to removal of syste
 Start-Sleep -Seconds 1
 
 $Global:packagePatterns = @(
-    "Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-Handwriting-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-OCR-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-Speech-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-LanguageFeatures-TextToSpeech-$($languageCode)-Package~31bf3856ad364e35",
-    "Microsoft-Windows-MediaPlayer-Package~31bf3856ad364e35",
-    "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35",
+    "Microsoft-Windows-InternetExplorer-Optional-Package",
+    "Microsoft-Windows-LanguageFeatures-Handwriting-$($languageCode)",
+    "Microsoft-Windows-LanguageFeatures-OCR-$($languageCode)",
+    "Microsoft-Windows-LanguageFeatures-Speech-$($languageCode)",
+    "Microsoft-Windows-LanguageFeatures-TextToSpeech-$($languageCode)",
+    "Microsoft-Windows-MediaPlayer~",
+    "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~",
     "Microsoft-Windows-WordPad-FoD-Package~",
     "Microsoft-Windows-TabletPCMath-Package~",
     "Microsoft-Windows-StepsRecorder-Package~"
@@ -495,6 +526,7 @@ $Global:packagePatterns = @(
 # Get all packages
 $allPackages = & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Get-Packages /Format:Table
 $allPackages = $allPackages -split "`n" | Select-Object -Skip 1
+Write-Output -InputObject $allPackages
 
 foreach ($packagePattern in $packagePatterns) {
     # Filter the packages to remove
@@ -521,6 +553,7 @@ Disable-Telemetry
 Disable-DevAndOutlook
 Disable-ChatIcon
 Disable-Bing
+Disable-CoreIsolation
 
 #take ownership of tasks scheduler
 Mount-Registry
@@ -582,11 +615,26 @@ if(-not $(Test-Path "$($ScratchDisk)$($rootoemfolder)")) {
 try{
     Write-Host "Copying postInstall script to $($ScratchDisk)\$rootoemfolder"
     Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($rootoemfolder)\postInstall.ps1" -Force | Out-Null
+    Copy-Item -Path "$PSScriptRoot\packages.json" -Destination "$($ScratchDisk)$($rootoemfolder)\packages.json" -Force | Out-Null
     Write-Host "Copying postInstall script to $($ScratchDisk)$($oemfolder)"
     Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($oemfolder)\postInstall.ps1" -Force | Out-Null
+    Copy-Item -Path "$PSScriptRoot\packages.json" -Destination "$($ScratchDisk)$($oemfolder)\packages.json" -Force | Out-Null
 }
 catch {
     Write-Host "Failed to copy postInstall script. Continuing..."
+}
+
+if($InjectOEM){
+    $oemfolder = "$PSScriptRoot\oem"
+    $exes = Get-ChildItem -Path $oemfolder *.exe
+    if(-not $(Test-Path "$($ScratchDisk)$($rootoemfolder)\oem")) {
+        New-Item -ItemType Directory -Force -Path "$($ScratchDisk)$($rootoemfolder)\oem" | Out-Null
+    }
+    foreach($exe in $exes) {
+        Write-Host "Copying $($exe.Name) to $($ScratchDisk)$($rootoemfolder)\oem"
+        $destination = "$($ScratchDisk)$($rootoemfolder)\oem"
+        Copy-Item -Path $exe.FullName -Destination $destination -Force | Out-Null
+    }
 }
 
 Write-Host "Creating ISO image..."
@@ -618,8 +666,8 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-if(-not $(Test-Path "$($ImageOutputPath)\$ImageName")){
-    New-Item -ItemType Directory -Force -Path "$($ImageOutputPath)\$ImageName" | Out-Null
+if(-not $(Test-Path "$($ImageOutputPath)")){
+    New-Item -ItemType Directory -Force -Path "$($ImageOutputPath)" | Out-Null
 }
 & "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$($ScratchDisk)\tiny11\boot\etfsboot.com#pEF,e,b$($ScratchDisk)\tiny11\efi\microsoft\boot\efisys.bin" "$($ScratchDisk)\tiny11" "$($ImageOutputPath)\$ImageName"
 

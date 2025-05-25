@@ -1,0 +1,158 @@
+{
+    "name": "packages",
+    "version": "1.0.0",
+    "description": "list of packages for installation",
+    "author": "Bradly Schooley",
+    "dependencies": {
+        "choco": {
+            "url": "https://chocolatey.org/install.ps1",
+            "download": true
+        },
+        "winget": {
+            "url": "choco"
+        },
+        "7zip.install" : {
+            "url": "choco"
+        }
+    },
+    "exes": {
+        "Intel Arc.exe": {
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/intel/[Guru3D]-Intel-graphics-DCH.exe",
+            "graphics" : true,
+            "download": false,
+            "install": false
+        },
+        "everything.exe": {
+            "url": "https://www.voidtools.com/Everything-1.4.1.1026.x64-Setup.exe",
+            "graphics" : false,
+            "download": false,
+            "install": false
+        },
+        "parsec.exe": {
+            "url": "https://builds.parsec.app/package/parsec-windows.exe",
+            "graphics" : false,
+            "download": true,
+            "install": true
+        },
+        "startallback.exe": {
+            "url": "https://startisback.sfo3.cdn.digitaloceanspaces.com/StartAllBack_3.9.8_setup.exe",
+            "graphics" : false,
+            "download": false,
+            "install": false
+        },
+        "reshacker.exe": {
+            "url": "https://www.angusj.com/resourcehacker/reshacker_setup.exe",
+            "graphics" : false,
+            "download": false,
+            "install": false
+        }
+    },
+    "zip" : {
+        "Autologon.zip": {
+            "url": "https://download.sysinternals.com/files/AutoLogon.zip",
+            "graphics" : false,
+            "download": false,
+            "install": false
+        },
+        "AMDSoftware.exe": {
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
+            "graphics" : true,
+            "download": true,
+            "install": true
+        }
+    }, 
+    "github": {
+        "SecureUxTheme.zip": {
+            "author": "namazso",
+            "download": true,
+            "install": false
+        },
+        "winget-cli.msxibundle": {
+            "author": "Microsoft",
+            "download": false,
+            "install": false
+        },
+        "HandheldCompanion.exe": {
+            "author": "Valkirie",
+            "download": true,
+            "install": true
+        },
+        "dlss-swapper.exe": {
+            "author": "beeradmoore",
+            "download": false,
+            "install": false
+        },
+        "HackBGRT.zip": {
+            "author": "Metabolix",
+            "download": true,
+            "install": false
+        },
+        "MicaForEveryone": {
+            "author": "MicaForEveryone",
+            "download": true,
+            "install": false
+        }
+    },
+    "winget":{
+        "IridiumIO.CompactGUI": {
+            "download": true
+        },
+        "git.git": {
+            "download": true
+        }
+    },
+    "chocoPackages": {
+        "steam": {
+            "download": true
+        },
+        "memreduct": {
+            "download": true
+        },
+        "windhawk": {
+            "download": true
+        },
+        "dlss-swapper": {
+            "download": true
+        },
+        "winget": {
+            "download": false
+        },
+        "winaero-tweaker": {
+            "download": true
+        },
+        "amd-ryzen-chipset": {
+            "download": true
+        },
+        "7zip.install": {
+            "download": true
+        },
+        "everything": {
+            "download": true
+        },
+        "winbtrfs": {
+            "download": true,
+            "version": "1.9.0"
+        },
+        "autologon": {
+            "download": true
+        },
+        "g-helper": {
+            "download": true,
+            "version": "0.207.0"
+        },
+        "VBoxGuestAdditions.install": {
+            "download": false
+        },
+        "rainmeter": {
+            "download": true,
+            "version": "4.5.23"
+        },
+        "StartAllBack": {
+            "download": true,
+            "version": "3.9.7"
+        },
+        "reshack": {
+            "download": true
+        }
+    }
+}
