@@ -419,11 +419,11 @@ function Add-WinGetPackage(){
     [array]$AppxDepItems = Get-ChildItem -Path "$($tempPackagePath)\x64" -Filter "*.appx" -Recurse
     foreach ($item in $AppxDepItems) {
         Write-Host "Adding dependency: $($item.Name)"
-        & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-ProvisionedAppxPackage /PackagePath:"$($item.FullName)"
+        Add-AppxProvisionedPackage -Path "$($ScratchDisk)\scratchdir" -PackagePath "$($item.FullName)"
     }
 
     Write-Host "Adding Winget MSIX package to the image..."
-    & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-ProvisionedAppxPackage /PackagePath:"$($tempPackagePath)\$($wingetmsixName)" /LicensePath:"$($tempPackagePath)\$($wingetLicenseName)" 
+    Add-AppxProvisionedPackage -Path "$($ScratchDisk)\scratchdir" -PackagePath "$($tempPackagePath)\$($wingetmsixName)" -LicensePath "$($tempPackagePath)\$($wingetLicenseName)"
 }
 
 # Start the transcript and prepare the window
