@@ -25,7 +25,7 @@
         "everything.exe": {
             "url": "https://www.voidtools.com/Everything-1.4.1.1026.x64-Setup.exe",
             "graphics" : false,
-            "download": false,
+            "download": true,
             "install": false
         },
         "parsec.exe": {
@@ -37,13 +37,13 @@
         "startallback.exe": {
             "url": "https://startisback.sfo3.cdn.digitaloceanspaces.com/StartAllBack_3.9.8_setup.exe",
             "graphics" : false,
-            "download": false,
+            "download": true,
             "install": false
         },
         "reshacker.exe": {
             "url": "https://www.angusj.com/resourcehacker/reshacker_setup.exe",
             "graphics" : false,
-            "download": false,
+            "download": true,
             "install": false
         }
     },
@@ -58,7 +58,7 @@
             "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
             "graphics" : true,
             "download": true,
-            "install": true
+            "install": false
         }
     }, 
     "github": {
@@ -79,7 +79,7 @@
         },
         "dlss-swapper.exe": {
             "author": "beeradmoore",
-            "download": false,
+            "download": true,
             "install": false
         },
         "HackBGRT.zip": {
@@ -121,7 +121,7 @@
             "download": true
         },
         "amd-ryzen-chipset": {
-            "download": true
+            "download": false
         },
         "7zip.install": {
             "download": true
@@ -130,22 +130,22 @@
             "download": true
         },
         "winbtrfs": {
-            "download": true,
+            "download": false,
             "version": "1.9.0"
         },
         "autologon": {
             "download": true
         },
         "g-helper": {
-            "download": true,
-            "version": "0.207.0"
+            "download": false,
+            "version": "0.213.0"
         },
         "VBoxGuestAdditions.install": {
             "download": false
         },
         "rainmeter": {
-            "download": true,
-            "version": "4.5.23"
+            "download": false,
+            "version": "4.6.0"
         },
         "StartAllBack": {
             "download": true,

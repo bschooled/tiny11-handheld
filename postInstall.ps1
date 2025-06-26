@@ -18,19 +18,6 @@ Start-Transcript -Path "$PSScriptRoot\postInstall.log" -Append -NoClobber -Force
 Write-Host "Importing $PSScriptRoot\packages.json..."
 $packages = Get-Content "$PSScriptRoot\packages.json" | ConvertFrom-Json
 
-if($(Get-Module PowerShellForGitHub -ListAvailable)){
-    Write-Host "PowerShellForGitHub module is already installed."
-}
-else{
-    Install-PackageProvider -Name NuGet -Scope CurrentUser -Force -ErrorAction Stop -Confirm:$false
-    Write-Host "Installing PowerShellForGitHub module..."
-    Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-    Import-Module PowerShellForGitHub -Force -ErrorAction Stop
-    Set-GitHubConfiguration -DisableTelemetry
-}
-
-
-
 $Global:vendorHash = @{
     "AMD Software" = '1002'
     "Intel Arc" = '8086'
@@ -84,7 +71,7 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
         Write-host "`tFile Path is $filePath"
         Write-Host "`tRepo Name is $repoName and owner is $($packageProperties.author)"
         if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
-            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author).assets.browser_download_url
+            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author -Latest).assets.browser_download_url
             if($downloadURL.Count -gt 1 -and -not [string]::IsNullOrEmpty("$($downloadURL -match 'amd64')")){
                 Write-Host "`tMultiple download URLs found, pattern match for amd64, setting to matching URL"
                 $downloadURL = $downloadURL -match 'amd64'
@@ -144,7 +131,7 @@ function Check-WingetInstall() {
 
 function Install-ChocoPackages($package, $packageProperties) {
 
-    if([string]::IsNullOrEmpty("$(choco list $package | Select-String -Pattern '1')")){
+    if([string]::IsNullOrEmpty("$(choco list $package | Select-String -Pattern 'packages installed')")){
         if($null -ne $packageProperties.version){
             Write-Host "`tInstalling $package using Chocolatey"
             choco install $package --yes --no-prompt --accept-package-agreements --accept-source-agreements --version $packageProperties.version
@@ -423,18 +410,7 @@ foreach ($package in $choco) {
     }
 }
 
-#get ready for reboot steps
-Write-Host "Clone repo for configurations..."
-if(-not $(Test-Path "C:\packages" -ErrorAction SilentlyContinue)){
-    Write-Host "Creating C:\packages directory..."
-    New-Item -Path "C:\packages" -ItemType Directory | Out-Null
-}
-else{
-    Write-Host "C:\packages directory already exists, skipping creation..."
-}
-Set-Location -Path "C:\packages"
-git clone "https://github.com/bschooled/tiny11-handheld.git" -q -b dev
-Set-Location -Path "C:\packages\tiny11-handheld"
+
 # Add postInstallConfiguration.ps1 as a runonce script
 $runOnceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
 $scriptPath = "C:\packages\tiny11-handheld\postInstallConfiguration.ps1"

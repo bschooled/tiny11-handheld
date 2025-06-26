@@ -4,7 +4,8 @@ param (
     [string]$ImageName = "TinyHandheld11.iso",
     [string]$ImageOutputPath = $PSScriptRoot,
     [bool]$InjectDrivers = $false,
-    [bool]$InjectOEM = $false
+    [bool]$InjectOEM = $false,
+    [bool]$InjectUpdates = $false
 )
 #Uncomment the line below to enable debugging
 #Set-PSDebug -Trace 1
@@ -202,15 +203,12 @@ function Disable-CoreIsolation(){
 function Mount-Registry(){
     #Registry Tweaks
     Write-Host "Loading registry..."
-    & 'reg' 'load' 'HKLM\zDEFAULT' '$($ScratchDisk)\scratchdir\Windows\System32\config\default' > $null 2>&1
-    & 'reg' 'load' 'HKLM\zNTUSER' '$($ScratchDisk)\scratchdir\Users\Default\ntuser.dat' > $null 2>&1
-    & 'reg' 'load' 'HKLM\zSOFTWARE' '$($ScratchDisk)\scratchdir\Windows\System32\config\SOFTWARE' > $null 2>&1
-    & 'reg' 'load' 'HKLM\zSYSTEM' '$($ScratchDisk)\scratchdir\Windows\System32\config\SYSTEM' > $null 2>&1
-
-    & 'reg' 'load' 'HKLM\zDEFAULT' '$($ScratchDisk)\scratchdir\Windows\System32\config\default' > $null 2>&1
-& 'reg' 'load' 'HKLM\zNTUSER' '$($ScratchDisk)\scratchdir\Users\Default\ntuser.dat' > $null 2>&1
-& 'reg' 'load' 'HKLM\zSYSTEM' '$($ScratchDisk)\scratchdir\Windows\System32\config\SYSTEM' > $null 2>&1
+    & 'reg' 'load' 'HKLM\zDEFAULT' '.\scratchdir\Windows\System32\config\default' 
+    & 'reg' 'load' 'HKLM\zNTUSER' '.\scratchdir\Users\Default\ntuser.dat' 
+    & 'reg' 'load' 'HKLM\zSOFTWARE' '.\scratchdir\Windows\System32\config\SOFTWARE' 
+    & 'reg' 'load' 'HKLM\zSYSTEM' '.\scratchdir\Windows\System32\config\SYSTEM' 
 }
+
 ## This function allows PowerShell to take ownership of the Scheduled Tasks registry key from TrustedInstaller. Based on Jose Espitia's script.
 #Mount registry first
 function Enable-Privilege {
@@ -331,6 +329,11 @@ function Disable-Misc(){
     Write-Host 'Deleting QueueReporting...'
     & 'reg' 'delete' "HKEY_LOCAL_MACHINE\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{E3176A65-4E44-4ED3-AA73-3283660ACB9C}" '/f' > $null 2>&1
 }
+
+function Enable-Portable(){
+    Write-Host "Enabling USB Installer mode"
+    & 'reg' 'add' "HKLM\zSYSTEM\ControlSet001\Control" '/v' 'PortableOperatingSystem' '/t' 'REG_DWORD' '/d' '1' '/f' > $null 2>&1
+}
 #Unmount Registry
 function Unmount-Registry(){
     Write-Host "Unmounting Registry..."
@@ -365,6 +368,62 @@ function Mount-BootImage(){
     & 'icacls' $wimFilePath "/grant" "$($adminGroup.Value):(F)" > $null 2>&1
     Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false
     & 'DISM' /English /Mount-Image /ImageFile:"$($ScratchDisk)\tiny11\sources\boot.wim" /Index:2 /MountDir:"$($ScratchDisk)\scratchdir"
+}
+
+function Add-WinGetPackage(){
+    Write-Host "Adding WinGet package to the image..."
+    if($(Get-Module PowerShellForGitHub -ListAvailable)){
+    Write-Host "PowerShellForGitHub module is already installed."
+    }
+    else{
+        Install-PackageProvider -Name NuGet -Scope CurrentUser -Force -ErrorAction Stop -Confirm:$false
+        Write-Host "Installing PowerShellForGitHub module..."
+        Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+        Import-Module PowerShellForGitHub -Force -ErrorAction Stop
+        Set-GitHubConfiguration -DisableTelemetry
+    }
+
+    $tempPackagePath = "$($PSScriptRoot)\tempPackages"
+    if(-not $(Test-Path $tempPackagePath)){
+        New-Item -ItemType Directory -Path $tempPackagePath | Out-Null
+    }
+    
+    $downloadURL = (Get-GitHubRelease -RepositoryName winget-cli -OwnerName microsoft -Latest).assets.browser_download_url
+    $wingetlicense = $downloadURL | select-string -Pattern '.xml'
+    $wingetLicenseName = $wingetlicense -split '/' | Select-Object -Last 1
+    $wingetmsix = $downloadURL | select-string -Pattern '.msix'
+    $wingetmsixName = $wingetmsix -split '/' | Select-Object -Last 1
+    $wingetdependencies = $downloadURL | select-string -Pattern 'Dependencies.zip'
+    $wingetdepName = $wingetdependencies -split '/' | Select-Object -Last 1
+
+    Write-Host "`tWinget Dependencies URL: $wingetdependencies"
+    Write-Host "`tLicense URL: $wingetlicense"
+    Write-Host "`tMSIX URL: $wingetmsix"
+    Write-Host "`tDownloading to $tempPackagePath"
+
+    if(-not $(Test-Path "$($tempPackagePath)\$($wingetdepName)")){
+        Write-Host "Downloading Winget Dependencies file..."
+        Start-BitsTransfer -Source $wingetdependencies -Destination "$($tempPackagePath)\$($wingetdepName)" -DisplayName $wingetdepName -TransferType Download -ErrorAction Stop
+    }
+    if(-not $(Test-Path "$($tempPackagePath)\$($wingetLicenseName)")){
+        Write-Host "Downloading Winget License file..."
+        Start-BitsTransfer -Source $wingetlicense -Destination "$($tempPackagePath)\$($wingetLicenseName)" -DisplayName $wingetLicenseName -TransferType Download -ErrorAction Stop
+    }
+    if(-not $(Test-Path "$($tempPackagePath)\$($wingetmsixName)")){
+        Write-Host "Downloading Winget MSIX file..."
+        Start-BitsTransfer -Source $wingetmsix -Destination "$($tempPackagePath)\$($wingetmsixName)" -DisplayName $wingetmsixName -TransferType Download -ErrorAction Stop
+    }
+
+    Write-Host "Add dependencies to the image..."
+    Expand-Archive -Path "$($tempPackagePath)\$($wingetdepName)" -DestinationPath $tempPackagePath -Force
+    [array]$AppxDepItems = Get-ChildItem -Path "$($tempPackagePath)\x64" -Filter "*.appx" -Recurse
+    foreach ($item in $AppxDepItems) {
+        Write-Host "Adding dependency: $($item.Name)"
+        & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-ProvisionedAppxPackage /PackagePath:"$($item.FullName)"
+    }
+
+    Write-Host "Adding Winget MSIX package to the image..."
+    & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-ProvisionedAppxPackage /PackagePath:"$($tempPackagePath)\$($wingetmsixName)" /LicensePath:"$($tempPackagePath)\$($wingetLicenseName)" 
 }
 
 # Start the transcript and prepare the window
@@ -541,6 +600,8 @@ foreach ($packagePattern in $packagePatterns) {
     }
 }
 
+<#
+Mount-Registry
 #additional tweaking 
 #Remove-Edge
 #Remove-OneDrive
@@ -554,13 +615,15 @@ Disable-DevAndOutlook
 Disable-ChatIcon
 Disable-Bing
 Disable-CoreIsolation
+#Enable-Portable
 
 #take ownership of tasks scheduler
-Mount-Registry
-Enable-Privilege
-Enable-TasksControl
-Disable-Misc
+
+#Enable-Privilege
+#Enable-TasksControl
+#Disable-Misc
 Unmount-Registry
+#>
 
 Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$($ScratchDisk)\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 Write-Host "Tweaking complete!"
@@ -575,15 +638,15 @@ Export-Image
 Mount-BootImage
 
 #remount registry
-Mount-Registry
+#Mount-Registry
 
 #bypass system requirements on setup image with setup flag
-Remove-SysReqs -setupImage:$true
+#Remove-SysReqs -setupImage:$true
 
 Write-Host "Tweaking complete!"
 
 #unload registry
-Unmount-Registry
+#Unmount-Registry
 
 if($InjectDrivers -eq $true){
     Write-Host "Injecting drivers..."
@@ -591,6 +654,19 @@ if($InjectDrivers -eq $true){
 } else {
     Write-Host "Drivers injection skipped."
 }
+
+if($InjectUpdates -eq $true){
+    Write-Host "Injecting updates..."
+    $updates = Get-ChildItem -Path "$PWD\updates" -Filter *.msu | Sort-Object -Descending
+    foreach ($update in $updates) {
+        Write-Host "Injecting update: $($update.Name)"
+        & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-Package /PackagePath:"$($update.FullName)"
+    }
+} else {
+    Write-Host "Updates injection skipped."
+}
+
+Add-WinGetPackage
 
 Write-Host "Unmounting image..."
 & 'DISM' /English /Unmount-Image /MountDir:"$($ScratchDisk)\scratchdir" /Commit
@@ -613,15 +689,15 @@ if(-not $(Test-Path "$($ScratchDisk)$($rootoemfolder)")) {
     New-Item -ItemType Directory -Force -Path "$($ScratchDisk)$($rootoemfolder)" | Out-Null
 }
 try{
-    Write-Host "Copying postInstall script to $($ScratchDisk)\$rootoemfolder"
-    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($rootoemfolder)\postInstall.ps1" -Force | Out-Null
-    Copy-Item -Path "$PSScriptRoot\packages.json" -Destination "$($ScratchDisk)$($rootoemfolder)\packages.json" -Force | Out-Null
-    Write-Host "Copying postInstall script to $($ScratchDisk)$($oemfolder)"
-    Copy-Item -Path "$PSScriptRoot\postInstall.ps1" -Destination "$($ScratchDisk)$($oemfolder)\postInstall.ps1" -Force | Out-Null
-    Copy-Item -Path "$PSScriptRoot\packages.json" -Destination "$($ScratchDisk)$($oemfolder)\packages.json" -Force | Out-Null
+    Write-Host "Copying bootstrap script to $($ScratchDisk)\$rootoemfolder"
+    Copy-Item -Path "$PSScriptRoot\bootstrap.ps1" -Destination "$($ScratchDisk)$($rootoemfolder)\bootstrap.ps1" -Force | Out-Null
+    #Copy-Item -Path "$PSScriptRoot\packages.json" -Destination "$($ScratchDisk)$($rootoemfolder)\packages.json" -Force | Out-Null
+    Write-Host "Copying bootstrap script to $($ScratchDisk)$($oemfolder)"
+    Copy-Item -Path "$PSScriptRoot\bootstrap.ps1" -Destination "$($ScratchDisk)$($oemfolder)\bootstrap.ps1" -Force | Out-Null
+    #Copy-Item -Path "$PSScriptRoot\packages.json" -Destination "$($ScratchDisk)$($oemfolder)\packages.json" -Force | Out-Null
 }
 catch {
-    Write-Host "Failed to copy postInstall script. Continuing..."
+    Write-Host "Failed to copy bootstrap script. Continuing..."
 }
 
 if($InjectOEM){
