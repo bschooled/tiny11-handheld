@@ -120,13 +120,19 @@ function Check-WingetInstall() {
             $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe" -ErrorAction SilentlyContinue | select -First 1).FullName
         }        <# Action when all if and elseif conditions are false #>
     }
-    Write-Host "Final winget path is $wingetPath"
+    if([string]::IsNullOrEmpty("$wingetPath")){
+        Write-Host "Winget is not installed, please install it from the Microsoft Store or download it from the official website."
+    }
+    else{
+        Write-Host "Winget is installed at $wingetPath"
+    }
     return $wingetPath
 }
 
 function Install-ChocoPackages($package, $packageProperties) {
 
     $chocoListOutput = choco list $package
+    Write-Output $chocoListOutput
     if ($chocoListOutput -match "0 packages installed") {
         if($null -ne $packageProperties.version){
             Write-Host "`tInstalling $package using Chocolatey"
@@ -180,16 +186,20 @@ function Install-WingetPackages($package, $packageProperties) {
              Write-Host "Installing $package using winget on path"   
         }
     }
-    else{
+    elseif(string::IsNullOrEmpty($wingetStatus)){
         Write-Host "Installing $package using winget with direct executable path"
-        if(-not $(& "$($wingetStatus) list $package" | Select-String -Pattern "$package")){
+        if(-not $(& "$($wingetStatus)" list $package | Select-String -Pattern "$package")){
             Write-Host "`t$package is not installed, installing..."
-            & "$($wingetStatus) install --id $($package) --silent --accept-source-agreements --accept-package-agreements --source winget"
+            & "$wingetStatus" install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
         }
         else{
             Write-Host "`t$package is already installed, skipping installation."
             return
         }
+    }
+    else{
+        Write-Host "Winget is not installed, please install it from the Microsoft Store or download it from the official website."
+        return
     }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
