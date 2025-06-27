@@ -74,6 +74,9 @@ Install-PowerShellForGithub
 Install-Git
 Clone-Tiny11HandheldRepo
 
+Invoke-WebRequest -Uri "https://aka.ms/getwinget" -OutFile "$env:TEMP\winget.msixbundle"; Add-AppxPackage -Path "$env:TEMP\winget.msixbundle" -ForceApplicationShutdown; Remove-Item "$env:TEMP\winget.msixbundle"
+
+
 Set-Location -Path "C:\packages\tiny11-handheld"
 
 Write-Host "Running post-install script..."

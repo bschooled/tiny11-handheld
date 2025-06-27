@@ -121,7 +121,8 @@ function Check-WingetInstall() {
         }        <# Action when all if and elseif conditions are false #>
     }
     if([string]::IsNullOrEmpty("$wingetPath")){
-        Write-Host "Winget is not installed, please install it from the Microsoft Store or download it from the official website."
+        Write-Host "Winget is not installed, trying to install it..."
+        Invoke-WebRequest -Uri "https://aka.ms/getwinget" -OutFile "$env:TEMP\winget.msixbundle"; Add-AppxPackage -Path "$env:TEMP\winget.msixbundle" -ForceApplicationShutdown; Remove-Item "$env:TEMP\winget.msixbundle"
     }
     else{
         Write-Host "Winget is installed at $wingetPath"
