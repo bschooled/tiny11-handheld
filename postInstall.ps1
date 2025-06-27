@@ -126,7 +126,8 @@ function Check-WingetInstall() {
 
 function Install-ChocoPackages($package, $packageProperties) {
 
-    if([string]::IsNullOrEmpty("$(choco list $package | Select-String -Pattern 'packages installed')")){
+    $chocoListOutput = choco list $package
+    if ($chocoListOutput -match "0 packages installed") {
         if($null -ne $packageProperties.version){
             Write-Host "`tInstalling $package using Chocolatey"
             choco install $package --yes --no-prompt --accept-package-agreements --accept-source-agreements --version $packageProperties.version
@@ -174,12 +175,21 @@ function Install-WingetPackages($package, $packageProperties) {
     $wingetStatus = Check-WingetInstall
 
     if($wingetStatus -eq "winget.exe"){
-        Write-Host "Installing $package using winget on path"
-        winget.exe install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+        if(-not $(winget list $package | Select-String -Pattern "$package")){
+             winget.exe install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+             Write-Host "Installing $package using winget on path"   
+        }
     }
     else{
         Write-Host "Installing $package using winget with direct executable path"
-        & $wingetStatus install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+        if(-not $(& "$($wingetStatus) list $package" | Select-String -Pattern "$package")){
+            Write-Host "`t$package is not installed, installing..."
+            & "$($wingetStatus) install --id $($package) --silent --accept-source-agreements --accept-package-agreements --source winget"
+        }
+        else{
+            Write-Host "`t$package is already installed, skipping installation."
+            return
+        }
     }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
