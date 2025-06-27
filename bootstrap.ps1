@@ -13,6 +13,18 @@ else{
     Set-GitHubConfiguration -DisableTelemetry
 }
 
+if(-not $(Get-Command git -ErrorAction SilentlyContinue)){
+    Write-Host "Git is not installed, installing Git..."
+    winget.exe install git.git -e --accept-source-agreements --accept-package-agreements
+
+    # Refresh the shell environment so git is available
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    Write-Host "Refreshed PATH environment variable."
+}
+else{
+    Write-Host "Git is already installed."
+}
+
 Write-Host "Clone repo for latest scripts..."
 if(-not $(Test-Path "C:\packages" -ErrorAction SilentlyContinue)){
     Write-Host "Creating C:\packages directory..."

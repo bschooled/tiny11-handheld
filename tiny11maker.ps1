@@ -383,6 +383,8 @@ function Add-WinGetPackage(){
         Set-GitHubConfiguration -DisableTelemetry
     }
 
+    Import-Module dism
+
     $tempPackagePath = "$($PSScriptRoot)\tempPackages"
     if(-not $(Test-Path $tempPackagePath)){
         New-Item -ItemType Directory -Path $tempPackagePath | Out-Null
@@ -418,12 +420,12 @@ function Add-WinGetPackage(){
     Expand-Archive -Path "$($tempPackagePath)\$($wingetdepName)" -DestinationPath $tempPackagePath -Force
     [array]$AppxDepItems = Get-ChildItem -Path "$($tempPackagePath)\x64" -Filter "*.appx" -Recurse
     foreach ($item in $AppxDepItems) {
-        Write-Host "Adding dependency: $($item.Name)"
-        Add-AppxProvisionedPackage -Path "$($ScratchDisk)\scratchdir" -PackagePath "$($item.FullName)"
+        Write-Host "Adding dependency: $($item.Name) at $($item.FullName)"
+        & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-ProvisionedAppxPackage /PackagePath:"$($item.FullName)" /SkipLicense
     }
 
-    Write-Host "Adding Winget MSIX package to the image..."
-    Add-AppxProvisionedPackage -Path "$($ScratchDisk)\scratchdir" -PackagePath "$($tempPackagePath)\$($wingetmsixName)" -LicensePath "$($tempPackagePath)\$($wingetLicenseName)"
+    Write-Host "Adding Winget MSIX package $($wingetmsixName) at path $($tempPackagePath)\$($wingetmsixName)"
+    & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-ProvisionedAppxPackage /PackagePath:"$($tempPackagePath)\$($wingetmsixName)" /LicensePath:"$($tempPackagePath)\$($wingetLicenseName)"
 }
 
 # Start the transcript and prepare the window
@@ -600,6 +602,8 @@ foreach ($packagePattern in $packagePatterns) {
     }
 }
 
+Add-WinGetPackage
+
 <#
 Mount-Registry
 #additional tweaking 
@@ -665,8 +669,6 @@ if($InjectUpdates -eq $true){
 } else {
     Write-Host "Updates injection skipped."
 }
-
-Add-WinGetPackage
 
 Write-Host "Unmounting image..."
 & 'DISM' /English /Unmount-Image /MountDir:"$($ScratchDisk)\scratchdir" /Commit
