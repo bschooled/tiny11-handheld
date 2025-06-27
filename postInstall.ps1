@@ -71,18 +71,13 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
         Write-host "`tFile Path is $filePath"
         Write-Host "`tRepo Name is $repoName and owner is $($packageProperties.author)"
         if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
-            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author -Latest).assets.browser_download_url
-            if($downloadURL.Count -gt 1 -and -not [string]::IsNullOrEmpty("$($downloadURL -match 'amd64')")){
-                Write-Host "`tMultiple download URLs found, pattern match for amd64, setting to matching URL"
-                $downloadURL = $downloadURL -match 'amd64'
-            }
-            else{
-                Write-Host "`tMultiple download URL found, setting to first URL"
+            [array]$downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author -Latest).assets.browser_download_url
+            if($downloadURL.Count -gt 1){
                 $downloadURL = $downloadURL[0]
             }
             Write-Host "`tDownload URL is $downloadURL"
             Write-Host "`tDownloading $downloadURL to $filePath"
-            Start-BitsTransfer -Source $downloadURL -Destination $filePath -DisplayName $repoName -TransferType Download -ErrorAction Stop
+            Start-BitsTransfer -Source $downloadURL -Destination $filePath -DisplayName $repoName -TransferType Download
         } 
         else {
             Write-Host "`t$package already exists, skipping download..."
@@ -94,7 +89,7 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
         Write-Host "`tFile Path is $filePath"
         if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
             Write-Host "`tDownloading $($packageProperties.url) to $filePath"
-            Start-BitsTransfer -Source $packageProperties.url -Destination $filePath -DisplayName $package -TransferType Download -ErrorAction Stop
+            Start-BitsTransfer -Source $packageProperties.url -Destination $filePath -DisplayName $package -TransferType Download
         } else {
             Write-Host "`t$package already exists, skipping download..."
         }
