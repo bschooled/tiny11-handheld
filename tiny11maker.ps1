@@ -663,6 +663,10 @@ if($InjectUpdates -eq $true){
     Write-Host "Injecting updates..."
     $updates = Get-ChildItem -Path "$PWD\updates" -Filter *.msu | Sort-Object -Descending
     foreach ($update in $updates) {
+        expand.exe -F:* "$($update.FullName)" "$PWD\updates"
+        Remove-Item -Path "$($update.FullName)" -Force | Out-Null
+    }
+    foreach ($update in $updates) {
         Write-Host "Injecting update: $($update.Name)"
         & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Add-Package /PackagePath:"$($update.FullName)"
     }
