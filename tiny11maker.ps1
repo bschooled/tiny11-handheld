@@ -577,12 +577,12 @@ $Global:packagePatterns = @(
     "Microsoft-Windows-LanguageFeatures-OCR-$($languageCode)",
     "Microsoft-Windows-LanguageFeatures-Speech-$($languageCode)",
     "Microsoft-Windows-LanguageFeatures-TextToSpeech-$($languageCode)",
-    "Microsoft-Windows-MediaPlayer~",
-    "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~",
     "Microsoft-Windows-WordPad-FoD-Package~",
     "Microsoft-Windows-TabletPCMath-Package~",
     "Microsoft-Windows-StepsRecorder-Package~"
 )
+#    "Microsoft-Windows-MediaPlayer~",
+#    "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~",
 
 # Get all packages
 $allPackages = & 'DISM' /English /Image:"$($ScratchDisk)\scratchdir" /Get-Packages /Format:Table
@@ -604,30 +604,30 @@ foreach ($packagePattern in $packagePatterns) {
 
 Add-WinGetPackage
 
-<#
-Mount-Registry
+#Mount-Registry
 #additional tweaking 
 #Remove-Edge
 #Remove-OneDrive
-Remove-SysReqs -setupImage:$false
-Remove-Sponsored
-Enable-LocalOOBE
-Disable-ReservedStorage
-Disable-BitLocker
-Disable-Telemetry
-Disable-DevAndOutlook
-Disable-ChatIcon
-Disable-Bing
-Disable-CoreIsolation
+#Remove-SysReqs -setupImage:$false
+#Remove-Sponsored
+#Enable-LocalOOBE
+#Disable-ReservedStorage
+#Disable-BitLocker
+#Disable-Telemetry
+#Disable-DevAndOutlook
+#Disable-ChatIcon
+#Disable-Bing
+#Disable-CoreIsolation
 #Enable-Portable
 
 #take ownership of tasks scheduler
-
+<#
 #Enable-Privilege
 #Enable-TasksControl
 #Disable-Misc
 Unmount-Registry
 #>
+#Unmount-Registry
 
 Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$($ScratchDisk)\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 Write-Host "Tweaking complete!"
