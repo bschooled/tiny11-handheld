@@ -55,10 +55,10 @@
             "install": false
         },
         "AMDSoftware.exe": {
-            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-whql-amd-software-adrenalin-edition-25.3.1-win10-win11-march-rdna.exe",
+            "url": "https://ftp.nluug.nl/pub/games/PC/guru3d/amd/2025/[Guru3D]-amd-software-adrenalin-edition-25.6.3-win10-win11-june-rdna.exe",
             "graphics" : true,
             "download": true,
-            "install": true
+            "install": false
         }
     }, 
     "github": {
@@ -75,11 +75,11 @@
         "HandheldCompanion.exe": {
             "author": "Valkirie",
             "download": true,
-            "install": true
+            "install": false
         },
         "dlss-swapper.exe": {
             "author": "beeradmoore",
-            "download": false,
+            "download": true,
             "install": false
         },
         "HackBGRT.zip": {
@@ -121,7 +121,7 @@
             "download": true
         },
         "amd-ryzen-chipset": {
-            "download": true
+            "download": false
         },
         "7zip.install": {
             "download": true
@@ -130,22 +130,22 @@
             "download": true
         },
         "winbtrfs": {
-            "download": true,
+            "download": false,
             "version": "1.9.0"
         },
         "autologon": {
             "download": true
         },
         "g-helper": {
-            "download": true,
-            "version": "0.207.0"
+            "download": false,
+            "version": "0.213.0"
         },
         "VBoxGuestAdditions.install": {
             "download": false
         },
         "rainmeter": {
-            "download": true,
-            "version": "4.5.23"
+            "download": false,
+            "version": "4.6.0"
         },
         "StartAllBack": {
             "download": true,

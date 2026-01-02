@@ -18,19 +18,6 @@ Start-Transcript -Path "$PSScriptRoot\postInstall.log" -Append -NoClobber -Force
 Write-Host "Importing $PSScriptRoot\packages.json..."
 $packages = Get-Content "$PSScriptRoot\packages.json" | ConvertFrom-Json
 
-if($(Get-Module PowerShellForGitHub -ListAvailable)){
-    Write-Host "PowerShellForGitHub module is already installed."
-}
-else{
-    Install-PackageProvider -Name NuGet -Scope CurrentUser -Force -ErrorAction Stop -Confirm:$false
-    Write-Host "Installing PowerShellForGitHub module..."
-    Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-    Import-Module PowerShellForGitHub -Force -ErrorAction Stop
-    Set-GitHubConfiguration -DisableTelemetry
-}
-
-
-
 $Global:vendorHash = @{
     "AMD Software" = '1002'
     "Intel Arc" = '8086'
@@ -84,18 +71,13 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
         Write-host "`tFile Path is $filePath"
         Write-Host "`tRepo Name is $repoName and owner is $($packageProperties.author)"
         if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
-            $downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author).assets.browser_download_url
-            if($downloadURL.Count -gt 1 -and -not [string]::IsNullOrEmpty("$($downloadURL -match 'amd64')")){
-                Write-Host "`tMultiple download URLs found, pattern match for amd64, setting to matching URL"
-                $downloadURL = $downloadURL -match 'amd64'
-            }
-            else{
-                Write-Host "`tMultiple download URL found, setting to first URL"
+            [array]$downloadURL = $(Get-GitHubRelease -RepositoryName $repoName -OwnerName $packageProperties.author -Latest).assets.browser_download_url
+            if($downloadURL.Count -gt 1){
                 $downloadURL = $downloadURL[0]
             }
             Write-Host "`tDownload URL is $downloadURL"
             Write-Host "`tDownloading $downloadURL to $filePath"
-            Start-BitsTransfer -Source $downloadURL -Destination $filePath -DisplayName $repoName -TransferType Download -ErrorAction Stop
+            Start-BitsTransfer -Source $downloadURL -Destination $filePath -DisplayName $repoName -TransferType Download
         } 
         else {
             Write-Host "`t$package already exists, skipping download..."
@@ -107,7 +89,7 @@ function Download-Packages($DownloadPath,$package,$packageProperties,[bool]$gith
         Write-Host "`tFile Path is $filePath"
         if (-not (Test-Path $filePath -ErrorAction SilentlyContinue)) {
             Write-Host "`tDownloading $($packageProperties.url) to $filePath"
-            Start-BitsTransfer -Source $packageProperties.url -Destination $filePath -DisplayName $package -TransferType Download -ErrorAction Stop
+            Start-BitsTransfer -Source $packageProperties.url -Destination $filePath -DisplayName $package -TransferType Download
         } else {
             Write-Host "`t$package already exists, skipping download..."
         }
@@ -138,13 +120,21 @@ function Check-WingetInstall() {
             $wingetPath = $(Get-ChildItem "C:\Users\$($env:USERNAME)\AppData\Local\Microsoft\WindowsApps" -Recurse -Include "winget.exe" -ErrorAction SilentlyContinue | select -First 1).FullName
         }        <# Action when all if and elseif conditions are false #>
     }
-    Write-Host "Final winget path is $wingetPath"
+    if([string]::IsNullOrEmpty("$wingetPath")){
+        Write-Host "Winget is not installed, trying to install it..."
+        Invoke-WebRequest -Uri "https://aka.ms/getwinget" -OutFile "$env:TEMP\winget.msixbundle"; Add-AppxPackage -Path "$env:TEMP\winget.msixbundle" -ForceApplicationShutdown; Remove-Item "$env:TEMP\winget.msixbundle"
+    }
+    else{
+        Write-Host "Winget is installed at $wingetPath"
+    }
     return $wingetPath
 }
 
 function Install-ChocoPackages($package, $packageProperties) {
 
-    if([string]::IsNullOrEmpty("$(choco list $package | Select-String -Pattern '1')")){
+    $chocoListOutput = choco list $package
+    Write-Output $chocoListOutput
+    if ($chocoListOutput -match "0 packages installed") {
         if($null -ne $packageProperties.version){
             Write-Host "`tInstalling $package using Chocolatey"
             choco install $package --yes --no-prompt --accept-package-agreements --accept-source-agreements --version $packageProperties.version
@@ -192,12 +182,25 @@ function Install-WingetPackages($package, $packageProperties) {
     $wingetStatus = Check-WingetInstall
 
     if($wingetStatus -eq "winget.exe"){
-        Write-Host "Installing $package using winget on path"
-        winget.exe install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+        if(-not $(winget list $package | Select-String -Pattern "$package")){
+             winget.exe install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+             Write-Host "Installing $package using winget on path"   
+        }
+    }
+    elseif(string::IsNullOrEmpty($wingetStatus)){
+        Write-Host "Installing $package using winget with direct executable path"
+        if(-not $(& "$($wingetStatus)" list $package | Select-String -Pattern "$package")){
+            Write-Host "`t$package is not installed, installing..."
+            & "$wingetStatus" install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+        }
+        else{
+            Write-Host "`t$package is already installed, skipping installation."
+            return
+        }
     }
     else{
-        Write-Host "Installing $package using winget with direct executable path"
-        & $wingetStatus install --id $package --silent --accept-source-agreements --accept-package-agreements --source winget
+        Write-Host "Winget is not installed, please install it from the Microsoft Store or download it from the official website."
+        return
     }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
@@ -423,18 +426,7 @@ foreach ($package in $choco) {
     }
 }
 
-#get ready for reboot steps
-Write-Host "Clone repo for configurations..."
-if(-not $(Test-Path "C:\packages" -ErrorAction SilentlyContinue)){
-    Write-Host "Creating C:\packages directory..."
-    New-Item -Path "C:\packages" -ItemType Directory | Out-Null
-}
-else{
-    Write-Host "C:\packages directory already exists, skipping creation..."
-}
-Set-Location -Path "C:\packages"
-git clone "https://github.com/bschooled/tiny11-handheld.git" -q -b dev
-Set-Location -Path "C:\packages\tiny11-handheld"
+
 # Add postInstallConfiguration.ps1 as a runonce script
 $runOnceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
 $scriptPath = "C:\packages\tiny11-handheld\postInstallConfiguration.ps1"

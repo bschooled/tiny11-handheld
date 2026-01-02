@@ -7,3 +7,5 @@ amd64/
 scratchdir/
 tiny11/
 oem/
+updates/
+tempPackages/
