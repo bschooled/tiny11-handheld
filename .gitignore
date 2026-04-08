@@ -30,6 +30,11 @@ test-*.log
 # Validation artifacts
 validation-report.txt
 
+# Speckit/copilot prompt artifacts
+.github/prompts/
+.github/agents/speckit*.agent.md
+.specify/
+
 # Generated ISO extraction content
 workspace*/
 
