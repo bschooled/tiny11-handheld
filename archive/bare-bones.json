@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Bare Bones Preset",
+    "description": "Absolutely minimal Windows 11 configuration - NO package removal, NO security changes, basic installation only",
+    "author": "tiny11-handheld",
+    "created": "2026-01-22T00:00:00Z"
+  },
+  "source": {
+    "architecture": "amd64"
+  },
+  "output": {
+    "imageName": "tiny11-bare-bones.iso",
+    "outputPath": "./output",
+    "compressionLevel": "fast"
+  },
+  "packages": {
+    "removeEdge": false,
+    "removeOneDrive": false,
+    "removeList": [],
+    "keepList": []
+  },
+  "features": {
+    "bypassSystemRequirements": true,
+    "bypassTPM": true,
+    "bypassSecureBoot": true,
+    "bypassRAMCheck": true
+  },
+  "scripts": {
+    "buildVerification": false
+  },
+  "optimization": {
+    "componentCleanup": false,
+    "resetBase": false,
+    "removeWinSxSBackups": false
+  },
+  "drivers": {
+    "inject": false
+  },
+  "updates": {
+    "inject": false
+  },
+  "oem": {
+    "inject": false
+  },
+  "unattended": {
+    "timezone": "Pacific Standard Time",
+    "locale": "en-US",
+    "keyboardLayout": "0409:00000409",
+    "userAccount": {
+      "username": "Admin",
+      "password": "Password123",
+      "group": "Administrators"
+    }
+  },
+  "privacy": {},
+  "security": {},
+  "ui": {},
+  "performance": {},
+  "development": {},
+  "browser": {}
+}

@@ -1,0 +1,87 @@
+{
+  "version": "1.0.0",
+  "metadata": {
+    "name": "ASUS ROG Ally Preset",
+    "description": "Optimized configuration for ASUS ROG Ally handheld gaming PC",
+    "author": "tiny11-handheld",
+    "created": "2024-01-01T00:00:00Z"
+  },
+  "source": {
+    "architecture": "amd64"
+  },
+  "output": {
+    "imageName": "tiny11-rog-ally.iso",
+    "outputPath": "./output",
+    "compressionLevel": "max"
+  },
+  "packages": {
+    "removeEdge": true,
+    "removeOneDrive": true,
+    "removeList": [
+      "Microsoft.BingNews",
+      "Microsoft.BingWeather",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.Microsoft3DViewer",
+      "Microsoft.MicrosoftOfficeHub",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.MixedReality.Portal",
+      "Microsoft.Office.OneNote",
+      "Microsoft.People",
+      "Microsoft.SkypeApp",
+      "Microsoft.Todos",
+      "Microsoft.WindowsAlarms",
+      "Microsoft.WindowsCamera",
+      "Microsoft.windowscommunicationsapps",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.WindowsMaps",
+      "Microsoft.WindowsSoundRecorder",
+      "Microsoft.YourPhone",
+      "Microsoft.ZuneMusic",
+      "Microsoft.ZuneVideo"
+    ],
+    "keepList": [
+      "Microsoft.WindowsStore",
+      "Microsoft.WindowsTerminal",
+      "Microsoft.DesktopAppInstaller",
+      "Microsoft.GamingApp",
+      "Microsoft.Xbox.TCUI",
+      "Microsoft.XboxApp",
+      "Microsoft.XboxGameOverlay",
+      "Microsoft.XboxGamingOverlay",
+      "Microsoft.XboxIdentityProvider",
+      "Microsoft.XboxSpeechToTextOverlay"
+    ]
+  },
+  "features": {
+    "bypassSystemRequirements": true,
+    "bypassTPM": true,
+    "bypassSecureBoot": true,
+    "bypassRAMCheck": true
+  },
+  "optimization": {
+    "componentCleanup": true,
+    "resetBase": true,
+    "removeWinSxSBackups": false
+  },
+  "drivers": {
+    "inject": true,
+    "driverPath": "./drivers/rog-ally",
+    "recursive": true
+  },
+  "updates": {
+    "inject": false
+  },
+  "oem": {
+    "inject": false
+  },
+  "unattended": {
+    "computerName": "ROG-ALLY",
+    "timezone": "Pacific Standard Time",
+    "locale": "en-US",
+    "keyboardLayout": "0409:00000409"
+  },
+  "postInstall": {
+    "packagesJsonPath": "packages.json"
+  }
+}

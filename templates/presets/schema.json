@@ -1,0 +1,308 @@
+{
+  "$schema": "../schema.json",
+  "_comment_header": "PRESET SCHEMA TEMPLATE - Shows all available configuration options",
+  "_comment_purpose": "This file serves as documentation and template for creating presets",
+  "_comment_usage": "During build, only non-empty/non-default values are used from actual presets",
+  
+  "version": "1.0.0",
+  
+  "metadata": {
+    "_comment": "Descriptive information about this preset",
+    "name": "Preset Name",
+    "description": "Detailed description of what this preset configures",
+    "author": "Author name or organization",
+    "created": "2026-01-22T00:00:00Z"
+  },
+  
+  "source": {
+    "_comment": "Source ISO configuration",
+    "architecture": "amd64",
+    "_options": ["amd64", "x86", "arm64"]
+  },
+  
+  "output": {
+    "_comment": "Output ISO configuration",
+    "imageName": "custom-windows11.iso",
+    "_comment_imageName": "Filename for the generated ISO",
+    
+    "outputPath": "./output",
+    "_comment_outputPath": "Directory where ISO and logs will be saved (relative or absolute)",
+    
+    "compressionLevel": "fast",
+    "_options_compressionLevel": ["fast", "normal", "max"]
+  },
+  
+  "packages": {
+    "_comment": "AppX package removal configuration",
+    
+    "removeEdge": false,
+    "_comment_removeEdge": "Remove Microsoft Edge browser (not recommended)",
+    
+    "removeOneDrive": false,
+    "_comment_removeOneDrive": "Remove OneDrive integration",
+    
+    "removeList": [],
+    "_comment_removeList": "List of AppX packages to remove. Examples: Microsoft.BingNews, Microsoft.BingWeather, Microsoft.GamingApp, Microsoft.GetHelp, Microsoft.Getstarted, Microsoft.Microsoft3DViewer, Microsoft.MicrosoftOfficeHub, Microsoft.MicrosoftSolitaireCollection, Microsoft.MixedReality.Portal, Microsoft.Office.OneNote, Microsoft.People, Microsoft.SkypeApp, Microsoft.Todos, Microsoft.WindowsAlarms, Microsoft.WindowsCamera, Microsoft.windowscommunicationsapps, Microsoft.WindowsFeedbackHub, Microsoft.WindowsMaps, Microsoft.WindowsSoundRecorder, Microsoft.Xbox.TCUI, Microsoft.XboxApp, Microsoft.XboxGameOverlay, Microsoft.XboxGamingOverlay, Microsoft.XboxIdentityProvider, Microsoft.XboxSpeechToTextOverlay, Microsoft.YourPhone, Microsoft.ZuneMusic, Microsoft.ZuneVideo",
+    
+    "keepList": [],
+    "_comment_keepList": "List of AppX packages to explicitly keep. Examples: Microsoft.WindowsStore, Microsoft.WindowsTerminal, Microsoft.DesktopAppInstaller"
+  },
+  
+  "features": {
+    "_comment": "Windows 11 system requirement bypass features (LabConfig registry)",
+    
+    "bypassSystemRequirements": true,
+    "_comment_bypassSystemRequirements": "Master toggle for all bypass features below",
+    
+    "bypassTPM": true,
+    "_comment_bypassTPM": "Bypass TPM 2.0 requirement (HKLM\\SYSTEM\\Setup\\LabConfig\\BypassTPMCheck)",
+    
+    "bypassSecureBoot": true,
+    "_comment_bypassSecureBoot": "Bypass Secure Boot requirement (HKLM\\SYSTEM\\Setup\\LabConfig\\BypassSecureBootCheck)",
+    
+    "bypassRAMCheck": true,
+    "_comment_bypassRAMCheck": "Bypass 4GB RAM minimum requirement (HKLM\\SYSTEM\\Setup\\LabConfig\\BypassRAMCheck)",
+    
+    "bypassCPUCheck": true,
+    "_comment_bypassCPUCheck": "Bypass supported CPU list check (HKLM\\SYSTEM\\Setup\\LabConfig\\BypassCPUCheck)",
+    
+    "bypassStorageCheck": true,
+    "_comment_bypassStorageCheck": "Bypass storage size requirement (HKLM\\SYSTEM\\Setup\\LabConfig\\BypassStorageCheck)",
+    
+    "bypassDiskCheck": true,
+    "_comment_bypassDiskCheck": "Bypass disk type requirement - SSD check (HKLM\\SYSTEM\\Setup\\LabConfig\\BypassDiskCheck)",
+
+    "bypassUpgradeTPMCPUCheck": true,
+    "_comment_bypassUpgradeTPMCPUCheck": "Allow in-place upgrades on unsupported TPM/CPU (HKLM\\SYSTEM\\Setup\\MoSetup\\AllowUpgradesWithUnsupportedTPMOrCPU)",
+    
+    "disableCompatibilityAppraiser": true,
+    "_comment_disableCompatibilityAppraiser": "Disable compatibility appraiser/gating (HKLM\\SYSTEM\\Setup CmdLine, OOBEInProgress, SetupPhase)",
+
+    "suppressUnsupportedHardwareWarnings": true,
+    "_comment_suppressUnsupportedHardwareWarnings": "Suppress unsupported hardware notifications (HKLM\\SYSTEM\\Setup UnsupportedHardwareNotificationCache/Time)",
+    
+    "compactOS": false,
+    "_comment_compactOS": "Enable CompactOS (compressed system binaries). Disabled by default due to VM/disk compatibility risks"
+  },
+  
+  "scripts": {
+    "_comment": "Post-install script configuration",
+    
+    "buildVerification": false,
+    "_comment_buildVerification": "Run built-in verification script on first login to check settings applied correctly",
+    
+    "runOnce": [],
+    "_comment_runOnce": "One-time login scripts (string or array of PowerShell script paths). Executed at first user logon in order"
+  },
+  
+  "optimization": {
+    "_comment": "WIM image optimization settings",
+    
+    "componentCleanup": false,
+    "_comment_componentCleanup": "Run DISM component cleanup (removes superseded components)",
+    
+    "resetBase": false,
+    "_comment_resetBase": "Reset base of superseded components (cannot be uninstalled after this)",
+    
+    "removeWinSxSBackups": false,
+    "_comment_removeWinSxSBackups": "Remove backup files from WinSxS folder (cannot be uninstalled after this)"
+  },
+  
+  "drivers": {
+    "_comment": "Driver injection configuration",
+    
+    "inject": false,
+    "_comment_inject": "Enable driver injection",
+    
+    "path": null,
+    "_comment_path": "Path to folder containing .inf driver files (relative or absolute)"
+  },
+  
+  "updates": {
+    "_comment": "Windows Update package injection (not yet implemented)",
+    "inject": false
+  },
+  
+  "oem": {
+    "_comment": "OEM customization injection",
+    
+    "inject": false,
+    "_comment_inject": "Enable OEM file injection",
+
+    "oemPath": null,
+    "_comment_oemPath": "Optional root OEM folder to copy into ISO (staged at sources/$OEM$/)",
+
+    "copy": [],
+    "_comment_copy": "List of files/folders to copy into install via $OEM$\\\\$1 (destination relative to C:\\\\)",
+    "_example_copy": [
+      { "source": "./oem/driver.exe", "destination": "OEM/driver.exe" },
+      { "source": "./oem/tools", "destination": "Tools" }
+    ]
+  },
+  
+  "unattended": {
+    "_comment": "Autounattend.xml configuration for automated installation",
+    
+    "timezone": "Pacific Standard Time",
+    "_comment_timezone": "Windows timezone name (e.g., 'Pacific Standard Time', 'Eastern Standard Time', 'UTC')",
+    "_timezone_examples": [
+      "Pacific Standard Time",
+      "Mountain Standard Time", 
+      "Central Standard Time",
+      "Eastern Standard Time",
+      "GMT Standard Time",
+      "UTC"
+    ],
+    
+    "locale": "en-US",
+    "_comment_locale": "System locale (e.g., en-US, de-DE, ja-JP, fr-FR)",
+    
+    "keyboardLayout": "0409:00000409",
+    "_comment_keyboardLayout": "Keyboard layout in format 'LanguageID:KeyboardID'",
+    "_keyboard_examples": {
+      "US English": "0409:00000409",
+      "UK English": "0809:00000809",
+      "German": "0407:00000407",
+      "French": "040c:0000040c",
+      "Spanish": "0c0a:0000040a",
+      "Japanese": "0411:00000411"
+    },
+    
+    "userAccount": {
+      "_comment": "Default administrator account created during installation",
+      
+      "username": "Admin",
+      "_comment_username": "Username for the local administrator account",
+      
+      "password": "Password123",
+      "_comment_password": "Password (plain text - will be set during install)",
+      
+      "group": "Administrators",
+      "_options_group": ["Administrators", "Users"]
+    }
+  },
+  
+  "privacy": {
+    "_comment": "Privacy and telemetry settings",
+    
+    "disableTelemetry": false,
+    "_comment_disableTelemetry": "Disable Windows telemetry and diagnostic data collection (HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection)",
+    
+    "disableAppSuggestions": false,
+    "_comment_disableAppSuggestions": "Disable app suggestions in Start menu, notifications, and lock screen (HKCU\\ContentDeliveryManager)",
+    
+    "disableCopilot": false,
+    "_comment_disableCopilot": "Disable Windows Copilot AI assistant (HKCU\\WindowsCopilot\\TurnOffWindowsCopilot)",
+    
+    "expressSettings": "interactive",
+    "_options_expressSettings": ["interactive", "enableAll", "disableAll"],
+    "_comment_expressSettings": "OOBE privacy settings behavior"
+  },
+  
+  "security": {
+    "_comment": "Security feature configuration",
+    
+    "disableUac": false,
+    "_comment_disableUac": "Disable User Account Control (NOT RECOMMENDED - security risk)",
+    
+    "disableSmartScreen": false,
+    "_comment_disableSmartScreen": "Disable Windows SmartScreen filter for apps/files/websites",
+    
+    "disableVirtualizationBasedSecurity": false,
+    "_comment_disableVirtualizationBasedSecurity": "Disable VBS/HVCI (memory integrity) - improves performance but reduces security",
+
+    "disableMemoryIntegrity": false,
+    "_comment_disableMemoryIntegrity": "Explicit flag to disable Core Isolation / Memory Integrity (maps to HVCI/VBS registry)",
+    
+    "preventDeviceEncryption": false,
+    "_comment_preventDeviceEncryption": "Prevent automatic BitLocker device encryption",
+
+    "enableUsbInstallation": false,
+    "_comment_enableUsbInstallation": "Allow installs to proceed when removable/USB device policies are present (relaxes device install restrictions)"
+  },
+  
+  "ui": {
+    "_comment": "User interface customization settings",
+    
+    "showFileExtensions": false,
+    "_comment_showFileExtensions": "Show file extensions in File Explorer (HKCU\\Explorer\\Advanced\\HideFileExt)",
+    
+    "hideFiles": "hidden",
+    "_options_hideFiles": ["none", "hidden", "hiddenSystem"],
+    "_comment_hideFiles": "Hidden file visibility: 'none' (show all), 'hidden' (hide hidden), 'hiddenSystem' (hide hidden+system)",
+    
+    "taskbarSearch": "icon",
+    "_options_taskbarSearch": ["hide", "icon", "box", "label"],
+    "_comment_taskbarSearch": "Taskbar search box appearance (HKCU\\Search\\SearchboxTaskbarMode)",
+    
+    "disableWidgets": false,
+    "_comment_disableWidgets": "Disable widgets/news and interests on taskbar (HKLM\\Policies\\Dsh\\AllowNewsAndInterests)",
+    
+    "launchToThisPC": false,
+    "_comment_launchToThisPC": "Open File Explorer to 'This PC' instead of 'Quick Access' (HKCU\\Explorer\\Advanced\\LaunchTo)",
+    
+    "disableWindowsConsumerFeatures": false,
+    "_comment_disableWindowsConsumerFeatures": "Disable consumer features: app suggestions, tips, ads (HKLM\\CloudContent\\DisableWindowsConsumerFeatures)",
+    
+    "emptyStartPins": false,
+    "_comment_emptyStartPins": "Remove all pinned items from Start menu (ConfigureStartPins)",
+    
+    "disableBingResults": false,
+    "_comment_disableBingResults": "Disable Bing web results in Windows Search (HKCU\\Explorer\\DisableSearchBoxSuggestions)",
+    
+    "disableStickyKeys": false,
+    "_comment_disableStickyKeys": "Disable Sticky Keys accessibility feature (HKCU\\Accessibility\\StickyKeys)"
+  },
+  
+  "performance": {
+    "_comment": "Performance optimization settings",
+    
+    "enableLongPaths": false,
+    "_comment_enableLongPaths": "Enable NTFS long path support >260 characters (HKLM\\FileSystem\\LongPathsEnabled)",
+    
+    "disableFastStartup": false,
+    "_comment_disableFastStartup": "Disable fast startup/hybrid shutdown - improves dual-boot compatibility (HKLM\\Power\\HiberbootEnabled)",
+    
+    "disableHibernation": false,
+    "_comment_disableHibernation": "Disable hibernation to free up disk space (removes hiberfil.sys)",
+    
+    "disableSystemRestore": false,
+    "_comment_disableSystemRestore": "Disable System Restore to free up disk space (HKLM\\Policies\\SR\\DisableSR)",
+    
+    "allowPowerShellScripts": false,
+    "_comment_allowPowerShellScripts": "Set PowerShell execution policy to RemoteSigned (HKLM\\PowerShell\\ExecutionPolicy)"
+  },
+  
+  "development": {
+    "_comment": "Developer-focused settings",
+    
+    "enableDeveloperMode": false,
+    "_comment_enableDeveloperMode": "Enable Windows Developer Mode (sideloading, device portal, etc.)",
+    
+    "enableWSL": false,
+    "_comment_enableWSL": "Enable Windows Subsystem for Linux (requires restart)",
+    
+    "installWindowsTerminal": false,
+    "_comment_installWindowsTerminal": "Keep/install Windows Terminal (modern terminal application)",
+
+    "allowPowerShellScripts": false,
+    "_comment_allowPowerShellScripts_dev": "Alias for allowPowerShellScripts when specified under development"
+  },
+  
+  "browser": {
+    "_comment": "Microsoft Edge browser customization",
+    
+    "hideEdgeFre": false,
+    "_comment_hideEdgeFre": "Hide Edge first-run experience",
+    
+    "disableEdgeStartupBoost": false,
+    "_comment_disableEdgeStartupBoost": "Disable Edge startup boost background service"
+  },
+  
+  "postInstall": {
+    "_comment": "Post-installation configuration (runs after Windows setup completes)",
+    
+    "packagesJsonPath": null,
+    "_comment_packagesJsonPath": "Path to packages.json for winget package installation (relative or absolute)"
+  }
+}

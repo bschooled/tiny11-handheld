@@ -1,0 +1,115 @@
+{
+  "$schema": "../../templates/presets/schema.json",
+  "version": "1.0.0",
+  
+  "metadata": {
+    "name": "Handheld Gaming",
+    "description": "Optimized for handheld gaming devices (Steam Deck, ROG Ally, etc.) with aggressive optimization",
+    "author": "tiny11-handheld",
+    "created": "2026-01-22T00:00:00Z"
+  },
+  
+  "source": {
+    "architecture": "amd64"
+  },
+  
+  "output": {
+    "imageName": "win11-handheld.iso",
+    "outputPath": "./output",
+    "compressionLevel": "max"
+  },
+  
+  "packages": {
+    "removeOneDrive": true,
+    "removeList": [
+      "Microsoft.BingNews",
+      "Microsoft.BingWeather",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.Microsoft3DViewer",
+      "Microsoft.MicrosoftOfficeHub",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.MixedReality.Portal",
+      "Microsoft.Office.OneNote",
+      "Microsoft.People",
+      "Microsoft.SkypeApp",
+      "Microsoft.Todos",
+      "Microsoft.WindowsAlarms",
+      "Microsoft.WindowsCamera",
+      "Microsoft.windowscommunicationsapps",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.WindowsMaps",
+      "Microsoft.WindowsSoundRecorder",
+      "Microsoft.Xbox.TCUI",
+      "Microsoft.XboxApp",
+      "Microsoft.XboxGameOverlay",
+      "Microsoft.XboxGamingOverlay",
+      "Microsoft.XboxIdentityProvider",
+      "Microsoft.XboxSpeechToTextOverlay",
+      "Microsoft.YourPhone",
+      "Microsoft.ZuneMusic",
+      "Microsoft.ZuneVideo"
+    ],
+    "keepList": [
+      "Microsoft.GamingApp",
+      "Microsoft.WindowsStore"
+    ]
+  },
+  
+  "features": {
+    "bypassTPM": true,
+    "bypassSecureBoot": true,
+    "bypassRAMCheck": true
+  },
+  
+  "optimization": {
+    "componentCleanup": true
+  },
+  
+  "unattended": {
+    "timezone": "Pacific Standard Time",
+    "locale": "en-US",
+    "keyboardLayout": "0409:00000409",
+    "userAccount": {
+      "username": "Gamer",
+      "password": "Password123",
+      "group": "Administrators"
+    }
+  },
+  
+  "privacy": {
+    "disableTelemetry": true,
+    "disableAppSuggestions": true,
+    "disableCopilot": true,
+    "expressSettings": "disableAll"
+  },
+  
+  "security": {
+    "disableSmartScreen": true,
+    "disableVirtualizationBasedSecurity": true,
+    "preventDeviceEncryption": true
+  },
+  
+  "ui": {
+    "showFileExtensions": true,
+    "disableWidgets": true,
+    "launchToThisPC": true,
+    "disableWindowsConsumerFeatures": true,
+    "emptyStartPins": true,
+    "disableBingResults": true,
+    "disableStickyKeys": true
+  },
+  
+  "performance": {
+    "enableLongPaths": true,
+    "disableFastStartup": true,
+    "disableSystemRestore": true,
+    "allowPowerShellScripts": true
+  },
+
+  "oem": {
+    "inject": false,
+    "oemPath": null,
+    "copy": []
+  }
+}

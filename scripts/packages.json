@@ -32,7 +32,7 @@
             "url": "https://builds.parsec.app/package/parsec-windows.exe",
             "graphics" : false,
             "download": true,
-            "install": true
+            "install": false
         },
         "startallback.exe": {
             "url": "https://startisback.sfo3.cdn.digitaloceanspaces.com/StartAllBack_3.9.8_setup.exe",
@@ -64,7 +64,7 @@
     "github": {
         "SecureUxTheme.zip": {
             "author": "namazso",
-            "download": true,
+            "download": false,
             "install": false
         },
         "winget-cli.msxibundle": {
@@ -74,22 +74,22 @@
         },
         "HandheldCompanion.exe": {
             "author": "Valkirie",
-            "download": true,
+            "download": false,
             "install": false
         },
         "dlss-swapper.exe": {
             "author": "beeradmoore",
-            "download": true,
+            "download": false,
             "install": false
         },
         "HackBGRT.zip": {
             "author": "Metabolix",
-            "download": true,
+            "download": false,
             "install": false
         },
         "MicaForEveryone": {
             "author": "MicaForEveryone",
-            "download": true,
+            "download": false,
             "install": false
         }
     },
@@ -103,22 +103,22 @@
     },
     "chocoPackages": {
         "steam": {
-            "download": true
+            "download": false
         },
         "memreduct": {
             "download": true
         },
         "windhawk": {
-            "download": true
+            "download": false
         },
         "dlss-swapper": {
-            "download": true
+            "download": false
         },
         "winget": {
             "download": false
         },
         "winaero-tweaker": {
-            "download": true
+            "download": false
         },
         "amd-ryzen-chipset": {
             "download": false
@@ -127,7 +127,7 @@
             "download": true
         },
         "everything": {
-            "download": true
+            "download": false
         },
         "winbtrfs": {
             "download": false,
@@ -148,11 +148,11 @@
             "version": "4.6.0"
         },
         "StartAllBack": {
-            "download": true,
+            "download": false,
             "version": "3.9.7"
         },
         "reshack": {
-            "download": true
+            "download": false
         }
     }
 }

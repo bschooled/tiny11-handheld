@@ -1,0 +1,809 @@
+#Requires -Version 7.0
+
+<#
+.SYNOPSIS
+    Enhanced Autounattend.xml generation module with comprehensive configuration support.
+
+.DESCRIPTION
+    Generates autounattend.xml with support for:
+    - Privacy settings (telemetry, Copilot, app suggestions)
+    - Security settings (UAC, SmartScreen, VBS, device encryption)
+    - UI settings (file extensions, taskbar, Start menu)
+    - Performance settings (long paths, fast startup)
+    - Development settings (PowerShell execution policy)
+    - Browser settings (Edge first run, startup boost)
+    
+.NOTES
+    Module: Autounattend.psm1
+    Requires: PowerShell 7.0+
+    Version: 2.0.0
+#>
+
+function New-AutounattendXml {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Config,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OutputPath
+    )
+
+    Write-LogInfo "Generating enhanced autounattend.xml..."
+
+    # ===== Extract Basic Configuration =====
+    $bypassTPM = $false
+    $bypassSecureBoot = $false
+    $bypassRAM = $false
+    $bypassCPU = $false
+    $bypassStorage = $false
+    $bypassDisk = $false
+    $bypassUpgradeTPMCPU = $false
+    $disableAppraiser = $false
+    $suppressHardwareWarnings = $false
+    $usbInstall = $false
+
+    if ($Config.features) {
+        if ($Config.features.bypassSystemRequirements -eq $true) {
+            $bypassTPM = $bypassSecureBoot = $bypassRAM = $bypassCPU = $bypassStorage = $bypassDisk = $bypassUpgradeTPMCPU = $disableAppraiser = $suppressHardwareWarnings = $true
+        } else {
+            $bypassTPM = $Config.features.bypassTPM -eq $true
+            $bypassSecureBoot = $Config.features.bypassSecureBoot -eq $true
+            $bypassRAM = $Config.features.bypassRAMCheck -eq $true
+            $bypassCPU = $Config.features.bypassCPUCheck -eq $true
+            $bypassStorage = $Config.features.bypassStorageCheck -eq $true
+            $bypassDisk = $Config.features.bypassDiskCheck -eq $true
+            $bypassUpgradeTPMCPU = $Config.features.bypassUpgradeTPMCPUCheck -eq $true
+            $disableAppraiser = $Config.features.disableCompatibilityAppraiser -eq $true
+            $suppressHardwareWarnings = $Config.features.suppressUnsupportedHardwareWarnings -eq $true
+        }
+    }
+
+    # Also check security.bypassRequirementsCheck
+    if ($Config.security -and $Config.security.bypassRequirementsCheck -eq $true) {
+        $bypassTPM = $bypassSecureBoot = $bypassRAM = $bypassCPU = $bypassStorage = $bypassDisk = $bypassUpgradeTPMCPU = $disableAppraiser = $suppressHardwareWarnings = $true
+        Write-LogDebug "Bypasses enabled via security.bypassRequirementsCheck"
+    }
+
+    # Enable USB install handling
+    if ($Config.security -and $Config.security.enableUsbInstallation -eq $true) {
+        $usbInstall = $true
+    }
+
+    Write-LogDebug "Bypass flags - TPM: $bypassTPM, SecureBoot: $bypassSecureBoot, RAM: $bypassRAM, CPU: $bypassCPU, Storage: $bypassStorage, Disk: $bypassDisk, UpgradeTPMCPU: $bypassUpgradeTPMCPU, Appraiser: $disableAppraiser, HardwareWarnings: $suppressHardwareWarnings, USB: $usbInstall"
+
+    # Basic settings
+    $computerName = ""
+    $productKey = "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"
+    $timezone = "Pacific Standard Time"
+    $locale = "en-US"
+    $keyboardLayout = "0409:00000409"
+    $username = ""
+    $password = ""
+    $userGroup = "Administrators"
+
+    if ($Config.unattended) {
+        if ($Config.unattended.computerName) { $computerName = $Config.unattended.computerName }
+        if ($Config.unattended.productKey) { $productKey = $Config.unattended.productKey }
+        if ($Config.unattended.timezone) { $timezone = $Config.unattended.timezone }
+        if ($Config.unattended.locale) { $locale = $Config.unattended.locale }
+        if ($Config.unattended.keyboardLayout) { $keyboardLayout = $Config.unattended.keyboardLayout }
+        if ($Config.unattended.userAccount) {
+            if ($Config.unattended.userAccount.username) { $username = $Config.unattended.userAccount.username }
+            if ($Config.unattended.userAccount.password) { $password = $Config.unattended.userAccount.password }
+            if ($Config.unattended.userAccount.group) { $userGroup = $Config.unattended.userAccount.group }
+        }
+    }
+
+    # Support top-level locale/timezone/keyboard for new schema
+    if ($Config.locale) { $locale = $Config.locale }
+    if ($Config.timezone) { $timezone = $Config.timezone }
+    if ($Config.keyboard) { $keyboardLayout = $Config.keyboard }
+    if ($Config.userAccount) {
+        if ($Config.userAccount.username) { $username = $Config.userAccount.username }
+        if ($Config.userAccount.password) { $password = $Config.userAccount.password }
+        if ($Config.userAccount.group) { $userGroup = $Config.userAccount.group }
+    }
+
+    # ===== Build Specialize Scripts =====
+    $specializeScripts = @()
+
+    # Bypass requirements in specialize pass too
+    if ($bypassTPM -or $bypassSecureBoot -or $bypassRAM) {
+        $specializeScripts += @"
+{
+    reg.exe add "HKLM\SYSTEM\Setup\MoSetup" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f;
+}
+"@
+    }
+
+    # Security settings
+    if ($Config.security) {
+        if ($Config.security.disableSmartScreen -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v SmartScreenEnabled /t REG_SZ /d "Off" /f;
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components" /v ServiceEnabled /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components" /v NotifyMalicious /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components" /v NotifyPasswordReuse /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components" /v NotifyUnsafeApp /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray" /v HideSystray /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+
+        if ($Config.security.disableUac -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f;
+}
+"@
+        }
+
+        if ($Config.security.disableVirtualizationBasedSecurity -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v RequirePlatformSecurityFeatures /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 0 /f;
+}
+"@
+        }
+
+        if ($Config.security.preventDeviceEncryption -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+    }
+
+    # Performance settings
+    if ($Config.performance) {
+        if ($Config.performance.enableLongPaths -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+
+        if ($Config.performance.disableFastStartup -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power" /v HiberbootEnabled /t REG_DWORD /d 0 /f;
+}
+"@
+        }
+    }
+
+    # Development settings
+    if ($Config.development) {
+        if ($Config.development.allowPowerShellScripts -eq $true) {
+            $specializeScripts += @"
+{
+    Set-ExecutionPolicy -Scope 'LocalMachine' -ExecutionPolicy 'RemoteSigned' -Force;
+}
+"@
+        }
+    }
+
+    # UI settings - system level
+    if ($Config.ui) {
+        if ($Config.ui.disableWidgets -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v AllowNewsAndInterests /t REG_DWORD /d 0 /f;
+}
+"@
+        }
+
+        if ($Config.ui.disableWindowsConsumerFeatures -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\Software\Policies\Microsoft\Windows\CloudContent" /v DisableWindowsConsumerFeatures /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+
+        if ($Config.ui.emptyStartPins -eq $true) {
+            $specializeScripts += @"
+{
+    `$json = '{""pinnedList"":[]}';
+    `$key = 'Registry::HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start';
+    New-Item -Path `$key -ItemType 'Directory' -ErrorAction 'SilentlyContinue';
+    Set-ItemProperty -LiteralPath `$key -Name 'ConfigureStartPins' -Value `$json -Type 'String';
+}
+"@
+        }
+    }
+
+    # Browser settings
+    if ($Config.browser) {
+        if ($Config.browser.hideEdgeFre -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\Software\Policies\Microsoft\Edge" /v HideFirstRunExperience /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+
+        if ($Config.browser.disableEdgeStartupBoost -eq $true) {
+            $specializeScripts += @"
+{
+    reg.exe add "HKLM\Software\Policies\Microsoft\Edge\Recommended" /v BackgroundModeEnabled /t REG_DWORD /d 0 /f;
+    reg.exe add "HKLM\Software\Policies\Microsoft\Edge\Recommended" /v StartupBoostEnabled /t REG_DWORD /d 0 /f;
+}
+"@
+        }
+    }
+
+    # ===== Build DefaultUser Scripts =====
+    $defaultUserScripts = @()
+
+    # Privacy settings
+    if ($Config.privacy) {
+        if ($Config.privacy.disableCopilot -eq $true) {
+            $defaultUserScripts += @"
+{
+    reg.exe add "HKU\DefaultUser\Software\Policies\Microsoft\Windows\WindowsCopilot" /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+
+        if ($Config.privacy.disableAppSuggestions -eq $true) {
+            $defaultUserScripts += @"
+{
+    `$names = @(
+      'ContentDeliveryAllowed';
+      'FeatureManagementEnabled';
+      'OEMPreInstalledAppsEnabled';
+      'PreInstalledAppsEnabled';
+      'PreInstalledAppsEverEnabled';
+      'SilentInstalledAppsEnabled';
+      'SoftLandingEnabled';
+      'SubscribedContentEnabled';
+      'SubscribedContent-310093Enabled';
+      'SubscribedContent-338387Enabled';
+      'SubscribedContent-338388Enabled';
+      'SubscribedContent-338389Enabled';
+      'SubscribedContent-338393Enabled';
+      'SubscribedContent-353694Enabled';
+      'SubscribedContent-353696Enabled';
+      'SubscribedContent-353698Enabled';
+      'SystemPaneSuggestionsEnabled';
+    );
+    
+    foreach( `$name in `$names ) {
+      reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v `$name /t REG_DWORD /d 0 /f;
+    }
+}
+"@
+        }
+    }
+
+    # UI settings - user level
+    if ($Config.ui) {
+        if ($Config.ui.showFileExtensions -eq $true) {
+            $defaultUserScripts += @"
+{
+    reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f;
+}
+"@
+        }
+
+        if ($Config.ui.disableBingResults -eq $true) {
+            $defaultUserScripts += @"
+{
+    reg.exe add "HKU\DefaultUser\Software\Policies\Microsoft\Windows\Explorer" /v DisableSearchBoxSuggestions /t REG_DWORD /d 1 /f;
+}
+"@
+        }
+
+        if ($Config.ui.disableStickyKeys -eq $true) {
+            $defaultUserScripts += @"
+{
+    reg.exe add "HKU\DefaultUser\Control Panel\Accessibility\StickyKeys" /v Flags /t REG_SZ /d 10 /f;
+}
+"@
+        }
+    }
+
+    # SmartScreen user settings
+    if ($Config.security -and $Config.security.disableSmartScreen -eq $true) {
+        $defaultUserScripts += @"
+{
+    reg.exe add "HKU\DefaultUser\Software\Microsoft\Edge\SmartScreenEnabled" /ve /t REG_DWORD /d 0 /f;
+    reg.exe add "HKU\DefaultUser\Software\Microsoft\Edge\SmartScreenPuaEnabled" /ve /t REG_DWORD /d 0 /f;
+    reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\AppHost" /v EnableWebContentEvaluation /t REG_DWORD /d 0 /f;
+    reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\AppHost" /v PreventOverride /t REG_DWORD /d 0 /f;
+}
+"@
+    }
+
+    # Add RunOnce to trigger UserOnce script
+    $defaultUserScripts += @"
+{
+    reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\RunOnce" /v "UnattendedSetup" /t REG_SZ /d "powershell.exe -WindowStyle Normal -NoProfile -Command \`"Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\UserOnce.ps1' -Raw | Invoke-Expression;\`"" /f;
+}
+"@
+
+    # ===== Build FirstLogon Scripts =====
+    $firstLogonScripts = @()
+
+    if ($Config.performance -and $Config.performance.disableSystemRestore -eq $true) {
+        $firstLogonScripts += @"
+{
+    Disable-ComputerRestore -Drive 'C:\';
+}
+"@
+    }
+
+    # ===== Build UserOnce Scripts =====
+    $userOnceScripts = @()
+
+    if ($Config.privacy -and $Config.privacy.disableCopilot -eq $true) {
+        $userOnceScripts += @"
+{
+    Get-AppxPackage -Name 'Microsoft.Windows.Ai.Copilot.Provider' | Remove-AppxPackage;
+}
+"@
+    }
+
+    if ($Config.ui -and $Config.ui.launchToThisPC -eq $true) {
+        $userOnceScripts += @"
+{
+    Set-ItemProperty -LiteralPath 'Registry::HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'LaunchTo' -Type 'DWord' -Value 1;
+}
+"@
+    }
+
+    # ===== Build XML Sections =====
+    
+    Write-LogDebug "Script arrays - Specialize: $($specializeScripts.Count), DefaultUser: $($defaultUserScripts.Count), FirstLogon: $($firstLogonScripts.Count), UserOnce: $($userOnceScripts.Count)"
+
+    # Build bypass commands for windowsPE
+    $bypassCommands = @()
+    $order = 1
+    if ($bypassTPM) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($bypassSecureBoot) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($bypassRAM) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($bypassCPU) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassCPUCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($bypassStorage) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassStorageCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($bypassDisk) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($bypassUpgradeTPMCPU) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\MoSetup" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    if ($disableAppraiser) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup" /v CmdLine /t REG_SZ /d "" /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup" /v OOBEInProgress /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup" /v SetupPhase /t REG_DWORD /d 0 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+    
+    if ($suppressHardwareWarnings) {
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup" /v UnsupportedHardwareNotificationCache /t REG_DWORD /d 0 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup" /v UnsupportedHardwareNotificationCacheTime /t REG_QWORD /d 0 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+    }
+    
+    if ($usbInstall) {
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control" /v PortableOperatingSystem /t REG_DWORD /d 0 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup" /v AllowRemovableMedia /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup" /v ForceRemovableInstall /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassStorageCheck /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v WinToGo /t REG_DWORD /d 0 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v PortableOperatingSystem /t REG_DWORD /d 0 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup" /v UsbBootSupported /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SYSTEM\Setup" /v UsbInstallAllowed /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v DisableWUfBSafeguards /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v TargetReleaseVersion /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+        $bypassCommands += @"
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>$order</Order>
+                    <Path>reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v TargetReleaseVersionInfo /t REG_SZ /d 23H2 /f</Path>
+                </RunSynchronousCommand>
+"@
+        $order++
+    }
+
+    $bypassCommandsXml = if ($bypassCommands.Count -gt 0) { $bypassCommands -join "`n" } else { "" }
+    Write-LogDebug "Built $($bypassCommands.Count) bypass registry commands"
+
+    # Build script payloads
+    $specializeScriptContent = New-SetupScriptContent -Scripts $specializeScripts -Activity "Running scripts to customize your Windows installation." -LogPath "C:\Windows\Setup\Scripts\Specialize.log"
+    $defaultUserScriptContent = New-SetupScriptContent -Scripts $defaultUserScripts -Activity "Running scripts to modify the default user registry hive." -LogPath "C:\Windows\Setup\Scripts\DefaultUser.log"
+    $firstLogonScriptContent = New-SetupScriptContent -Scripts $firstLogonScripts -Activity "Running scripts to finalize your Windows installation." -LogPath "C:\Windows\Setup\Scripts\FirstLogon.log"
+    $userOnceScriptContent = New-SetupScriptContent -Scripts $userOnceScripts -Activity "Running scripts to configure this user account." -LogPath "`$env:TEMP\UserOnce.log"
+    Write-LogDebug "Generated script payloads - Specialize: $($specializeScriptContent.Length)b, DefaultUser: $($defaultUserScriptContent.Length)b, FirstLogon: $($firstLogonScriptContent.Length)b, UserOnce: $($userOnceScriptContent.Length)b"
+
+    # Build Extensions section
+    $extensionsXml = ""
+    if ($specializeScriptContent -or $defaultUserScriptContent -or $firstLogonScriptContent -or $userOnceScriptContent) {
+        $escapedSpecialize = $specializeScriptContent -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
+        $escapedDefaultUser = $defaultUserScriptContent -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
+        $escapedFirstLogon = $firstLogonScriptContent -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
+        $escapedUserOnce = $userOnceScriptContent -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
+
+        $extensionsXml = @"
+
+	<Extensions>
+"@
+        if ($specializeScripts.Count -gt 0) {
+            $extensionsXml += @"
+
+		<File path="C:\Windows\Setup\Scripts\Specialize.ps1">
+$escapedSpecialize
+		</File>
+"@
+        }
+        if ($defaultUserScripts.Count -gt 0) {
+            $extensionsXml += @"
+
+		<File path="C:\Windows\Setup\Scripts\DefaultUser.ps1">
+$escapedDefaultUser
+		</File>
+"@
+        }
+        if ($firstLogonScripts.Count -gt 0) {
+            $extensionsXml += @"
+
+		<File path="C:\Windows\Setup\Scripts\FirstLogon.ps1">
+$escapedFirstLogon
+		</File>
+"@
+        }
+        if ($userOnceScripts.Count -gt 0) {
+            $extensionsXml += @"
+
+		<File path="C:\Windows\Setup\Scripts\UserOnce.ps1">
+$escapedUserOnce
+		</File>
+"@
+        }
+        $extensionsXml += @"
+
+	</Extensions>
+"@
+    }
+
+    # Build RunSynchronous commands for specialize pass
+    $specializeCommands = ""
+    if ($specializeScriptContent -or $defaultUserScriptContent) {
+        $cmdOrder = 1
+        if ($defaultUserScriptContent) {
+            $specializeCommands += @"
+
+			<RunSynchronous>
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$cmdOrder</Order>
+					<Path>reg.exe load "HKU\DefaultUser" "C:\Users\Default\NTUSER.DAT"</Path>
+				</RunSynchronousCommand>
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$($cmdOrder + 1)</Order>
+					<Path>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\DefaultUser.ps1"</Path>
+				</RunSynchronousCommand>
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$($cmdOrder + 2)</Order>
+					<Path>reg.exe unload "HKU\DefaultUser"</Path>
+				</RunSynchronousCommand>
+"@
+            $cmdOrder += 3
+        }
+        if ($specializeScriptContent) {
+            $specializeCommands += @"
+
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$cmdOrder</Order>
+					<Path>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Specialize.ps1"</Path>
+				</RunSynchronousCommand>
+"@
+        }
+        $specializeCommands += @"
+
+			</RunSynchronous>
+"@
+    }
+
+    # Build FirstLogonCommands
+    $firstLogonCommands = ""
+    if ($firstLogonScriptContent) {
+        $firstLogonCommands = @"
+
+			<FirstLogonCommands>
+				<SynchronousCommand wcm:action="add">
+					<Order>1</Order>
+					<CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\FirstLogon.ps1"</CommandLine>
+				</SynchronousCommand>
+			</FirstLogonCommands>
+"@
+    }
+
+    # Parse keyboard layout
+    $keyboardParts = $keyboardLayout -split ':'
+    $inputLocale = if ($keyboardParts.Count -eq 2) { $keyboardLayout } else { "0409:00000409" }
+
+    # Build computer name
+    $computerNameXml = if ([string]::IsNullOrWhiteSpace($computerName)) {
+        "<ComputerName>*</ComputerName>"
+    } else {
+        "<ComputerName>$computerName</ComputerName>"
+    }
+
+    # Build OOBE privacy settings
+    $oobeProtectPCValue = "3"  # Default: disable all
+    if ($Config.privacy -and $Config.privacy.expressSettings) {
+        $oobeProtectPCValue = switch ($Config.privacy.expressSettings.ToLower()) {
+            "enableall" { "1" }
+            "disableall" { "3" }
+            default { "3" }
+        }
+    }
+
+    # Build user accounts
+    $userAccountsXml = if (-not [string]::IsNullOrWhiteSpace($username) -and -not [string]::IsNullOrWhiteSpace($password)) {
+        @"
+
+			<UserAccounts>
+				<LocalAccounts>
+					<LocalAccount wcm:action="add">
+						<Name>$username</Name>
+						<DisplayName>$username</DisplayName>
+						<Group>$userGroup</Group>
+						<Password>
+							<Value>$password</Value>
+							<PlainText>true</PlainText>
+						</Password>
+					</LocalAccount>
+				</LocalAccounts>
+			</UserAccounts>
+			<AutoLogon>
+				<Enabled>true</Enabled>
+				<LogonCount>1</LogonCount>
+				<Username>$username</Username>
+				<Password>
+					<Value>$password</Value>
+					<PlainText>true</PlainText>
+				</Password>
+			</AutoLogon>
+"@
+    } else { "" }
+
+    # ===== Generate Final XML =====
+    $xmlContent = @"
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+	<settings pass="windowsPE">
+		<component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<SetupUILanguage>
+				<UILanguage>$locale</UILanguage>
+			</SetupUILanguage>
+			<InputLocale>$inputLocale</InputLocale>
+			<SystemLocale>$locale</SystemLocale>
+			<UILanguage>$locale</UILanguage>
+			<UserLocale>$locale</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<ImageInstall>
+				<OSImage>
+					<Compact>true</Compact>
+				</OSImage>
+			</ImageInstall>
+			<UserData>
+				<ProductKey>
+					<Key>$productKey</Key>
+					<WillShowUI>OnError</WillShowUI>
+				</ProductKey>
+				<AcceptEula>true</AcceptEula>
+			</UserData>
+			<UseConfigurationSet>true</UseConfigurationSet>
+			<RunSynchronous>
+$bypassCommandsXml
+			</RunSynchronous>
+		</component>
+	</settings>
+	<settings pass="specialize">
+		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			$computerNameXml
+			<TimeZone>$timezone</TimeZone>$specializeCommands
+		</component>
+	</settings>
+	<settings pass="oobeSystem">
+		<component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<InputLocale>$inputLocale</InputLocale>
+			<SystemLocale>$locale</SystemLocale>
+			<UILanguage>$locale</UILanguage>
+			<UserLocale>$locale</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<OOBE>
+				<ProtectYourPC>$oobeProtectPCValue</ProtectYourPC>
+				<HideEULAPage>true</HideEULAPage>
+				<HideWirelessSetupInOOBE>false</HideWirelessSetupInOOBE>
+				<HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+			</OOBE>$userAccountsXml$firstLogonCommands
+		</component>
+	</settings>$extensionsXml
+</unattend>
+"@
+
+    # Write to output file
+    try {
+        $outputDir = Split-Path -Path $OutputPath -Parent
+        if ($outputDir -and -not (Test-Path -Path $outputDir)) {
+            New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+        }
+
+        Set-Content -Path $OutputPath -Value $xmlContent -Encoding UTF8 -Force
+        Write-LogInfo "✓ Enhanced autounattend.xml generated: $OutputPath"
+
+        # Log what was configured
+        $configuredFeatures = @()
+        if ($specializeScripts.Count -gt 0) { $configuredFeatures += "$($specializeScripts.Count) specialize scripts" }
+        if ($defaultUserScripts.Count -gt 0) { $configuredFeatures += "$($defaultUserScripts.Count) default user scripts" }
+        if ($firstLogonScripts.Count -gt 0) { $configuredFeatures += "$($firstLogonScripts.Count) first logon scripts" }
+        if ($userOnceScripts.Count -gt 0) { $configuredFeatures += "$($userOnceScripts.Count) user once scripts" }
+        if ($configuredFeatures.Count -gt 0) {
+            Write-LogDebug "Configured: $($configuredFeatures -join ', ')"
+        }
+
+        return $OutputPath
+    }
+    catch {
+        Write-LogError "Failed to create autounattend.xml: $($_.Exception.Message)"
+        throw "Failed to create autounattend.xml: $OutputPath"
+    }
+}
+
+Export-ModuleMember -Function New-AutounattendXml

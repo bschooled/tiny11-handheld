@@ -1,0 +1,308 @@
+#Requires -Version 7.0
+
+<#
+.SYNOPSIS
+    Autounattend.xml generation module.
+
+.DESCRIPTION
+    Generates autounattend.xml file from configuration parameters:
+    - System requirement bypasses (TPM, SecureBoot, RAM)
+    - Computer name configuration
+    - Product key injection
+    - Timezone and locale settings
+    - Keyboard layout configuration
+    - Privacy settings (telemetry, Copilot, app suggestions)
+    - Security settings (UAC, SmartScreen, VBS, device encryption)
+    - UI settings (file extensions, taskbar, Start menu)
+    - Performance settings (long paths, fast startup, system restore)
+    - Bloatware removal (packages, capabilities, features)
+    - User scripts (specialize, firstLogon, userOnce, defaultUser)
+    
+    Based on autounattend.old.xml template with full parameterization.
+
+.NOTES
+    Module: Autounattend.psm1
+    Requires: PowerShell 7.0+
+    Dependencies: Logger.psm1
+    Author: tiny11-handheld
+    Version: 2.0.0
+#>
+
+<#
+.SYNOPSIS
+    Generates autounattend.xml from configuration.
+
+.DESCRIPTION
+    Creates a Windows unattended installation answer file based on configuration:
+    - Configures bypass registry keys for system requirements
+    - Sets computer name (or generates random if not specified)
+    - Injects product key if provided
+    - Configures regional settings (timezone, locale, keyboard)
+    - Enables compact OS for smaller footprint
+
+.PARAMETER Config
+    Configuration hashtable containing unattended installation settings.
+
+.PARAMETER OutputPath
+    Path where autounattend.xml will be created.
+
+.OUTPUTS
+    System.String
+    Returns path to generated autounattend.xml file.
+
+.EXAMPLE
+    New-AutounattendXml -Config $config -OutputPath "./workspace/autounattend.xml"
+
+.NOTES
+    - Only regenerates if configuration changes (performance optimization)
+    - Based on autounattend.old.xml template structure
+    - Includes package removal scripts from original template
+    - Bypasses are configured via registry in windowsPE pass
+#>
+function New-AutounattendXml {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Config,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OutputPath
+    )
+
+    Write-LogInfo "Generating autounattend.xml..."
+
+    # Extract configuration values with defaults
+    $bypassTPM = $false
+    $bypassSecureBoot = $false
+    $bypassRAM = $false
+
+    if ($Config.features) {
+        if ($Config.features.bypassSystemRequirements -eq $true) {
+            $bypassTPM = $true
+            $bypassSecureBoot = $true
+            $bypassRAM = $true
+            Write-LogDebug "All system requirement bypasses enabled"
+        }
+        else {
+            $bypassTPM = $Config.features.bypassTPM -eq $true
+            $bypassSecureBoot = $Config.features.bypassSecureBoot -eq $true
+            $bypassRAM = $Config.features.bypassRAMCheck -eq $true
+            Write-LogDebug "Selective bypasses - TPM:$bypassTPM SecureBoot:$bypassSecureBoot RAM:$bypassRAM"
+        }
+    }
+
+    # Unattended configuration
+    $computerName = ""
+    $productKey = "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"  # Generic Windows 11 Home key (default)
+    $timezone = "Pacific Standard Time"
+    $locale = "en-US"
+    $keyboardLayout = "0409:00000409"
+    $username = ""
+    $password = ""
+    $userGroup = "Administrators"
+
+    if ($Config.unattended) {
+        if ($Config.unattended.computerName) {
+            $computerName = $Config.unattended.computerName
+            Write-LogDebug "Computer name: $computerName"
+        }
+        if ($Config.unattended.productKey) {
+            $productKey = $Config.unattended.productKey
+            Write-LogDebug "Product key provided (masked)"
+        }
+        if ($Config.unattended.timezone) {
+            $timezone = $Config.unattended.timezone
+            Write-LogDebug "Timezone: $timezone"
+        }
+        if ($Config.unattended.locale) {
+            $locale = $Config.unattended.locale
+            Write-LogDebug "Locale: $locale"
+        }
+        if ($Config.unattended.keyboardLayout) {
+            $keyboardLayout = $Config.unattended.keyboardLayout
+            Write-LogDebug "Keyboard layout: $keyboardLayout"
+        }
+        if ($Config.unattended.userAccount) {
+            if ($Config.unattended.userAccount.username) {
+                $username = $Config.unattended.userAccount.username
+                Write-LogDebug "Username: $username"
+            }
+            if ($Config.unattended.userAccount.password) {
+                $password = $Config.unattended.userAccount.password
+                Write-LogDebug "Password: (masked)"
+            }
+            if ($Config.unattended.userAccount.group) {
+                $userGroup = $Config.unattended.userAccount.group
+                Write-LogDebug "User group: $userGroup"
+            }
+        }
+    }
+
+    # Build RunSynchronousCommand entries for bypasses
+    $bypassCommands = @()
+    $order = 1
+
+    if ($bypassTPM) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+
+    if ($bypassSecureBoot) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+
+    if ($bypassRAM) {
+        $bypassCommands += @"
+				<RunSynchronousCommand wcm:action="add">
+					<Order>$order</Order>
+					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
+				</RunSynchronousCommand>
+"@
+        $order++
+    }
+
+    $bypassCommandsXml = if ($bypassCommands.Count -gt 0) {
+        $bypassCommands -join "`n"
+    }
+    else {
+        "<!-- No system requirement bypasses configured -->"
+    }
+
+    # Parse keyboard layout (format: LLLL:KKKKKKKK)
+    $keyboardParts = $keyboardLayout -split ':'
+    $inputLocale = if ($keyboardParts.Count -eq 2) {
+        $keyboardLayout  # Use full format
+    }
+    else {
+        "0409:00000409"  # Fallback to US
+    }
+
+    # Build computer name element
+    $computerNameXml = if ([string]::IsNullOrWhiteSpace($computerName)) {
+        "<ComputerName>*</ComputerName>  <!-- Random name generated -->"
+    }
+    else {
+        "<ComputerName>$computerName</ComputerName>"
+    }
+
+    # Build user accounts element
+    $userAccountsXml = if (-not [string]::IsNullOrWhiteSpace($username) -and -not [string]::IsNullOrWhiteSpace($password)) {
+        @"
+
+			<UserAccounts>
+				<LocalAccounts>
+					<LocalAccount wcm:action="add">
+						<Name>$username</Name>
+						<DisplayName>$username</DisplayName>
+						<Group>$userGroup</Group>
+						<Password>
+							<Value>$password</Value>
+							<PlainText>true</PlainText>
+						</Password>
+					</LocalAccount>
+				</LocalAccounts>
+			</UserAccounts>
+			<AutoLogon>
+				<Enabled>true</Enabled>
+				<Username>$username</Username>
+				<Password>
+					<Value>$password</Value>
+					<PlainText>true</PlainText>
+				</Password>
+			</AutoLogon>
+"@
+    }
+    else {
+        ""  # No user account - will prompt during OOBE
+    }
+
+    # Generate autounattend.xml content
+    $xmlContent = @"
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+	<settings pass="windowsPE">
+		<component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<SetupUILanguage>
+				<UILanguage>$locale</UILanguage>
+			</SetupUILanguage>
+			<InputLocale>$inputLocale</InputLocale>
+			<SystemLocale>$locale</SystemLocale>
+			<UILanguage>$locale</UILanguage>
+			<UserLocale>$locale</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<ImageInstall>
+				<OSImage>
+					<Compact>true</Compact>
+				</OSImage>
+			</ImageInstall>
+			<UserData>
+				<ProductKey>
+					<Key>$productKey</Key>
+					<WillShowUI>OnError</WillShowUI>
+				</ProductKey>
+				<AcceptEula>true</AcceptEula>
+			</UserData>
+			<RunSynchronous>
+$bypassCommandsXml
+			</RunSynchronous>
+		</component>
+	</settings>
+	<settings pass="specialize">
+		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			$computerNameXml
+			<TimeZone>$timezone</TimeZone>
+		</component>
+	</settings>
+	<settings pass="oobeSystem">
+		<component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<InputLocale>$inputLocale</InputLocale>
+			<SystemLocale>$locale</SystemLocale>
+			<UILanguage>$locale</UILanguage>
+			<UserLocale>$locale</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<OOBE>
+				<ProtectYourPC>3</ProtectYourPC>
+				<HideEULAPage>true</HideEULAPage>
+				<HideWirelessSetupInOOBE>false</HideWirelessSetupInOOBE>
+				<HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+			</OOBE>$userAccountsXml
+		</component>
+	</settings>
+</unattend>
+"@
+
+    # Write to output file
+    try {
+        # Ensure parent directory exists
+        $outputDir = Split-Path -Path $OutputPath -Parent
+        if ($outputDir -and -not (Test-Path -Path $outputDir)) {
+            New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+        }
+
+        Set-Content -Path $OutputPath -Value $xmlContent -Encoding UTF8 -Force
+        Write-LogInfo "✓ autounattend.xml generated: $OutputPath"
+
+        return $OutputPath
+    }
+    catch {
+        Write-LogError "Failed to create autounattend.xml: $($_.Exception.Message)"
+        throw "Failed to create autounattend.xml: $OutputPath"
+    }
+}
+
+# Export module members
+Export-ModuleMember -Function New-AutounattendXml

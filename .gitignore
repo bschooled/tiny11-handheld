@@ -9,3 +9,54 @@ tiny11/
 oem/
 updates/
 tempPackages/
+
+# Build artifacts (cross-platform build feature)
+output/
+workspace/
+workspace-driver-inject/
+*.wim
+*.esd
+
+# Generated unattended outputs
+autounattend.xml
+autounattend-*.xml
+autounattend copy.txt
+
+# Build logs and test captures
+output/logs/
+build-*.log
+test-*.log
+
+# Validation artifacts
+validation-report.txt
+
+# Generated ISO extraction content
+workspace*/
+
+# PowerShell
+*.ps1xml
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

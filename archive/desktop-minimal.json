@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Desktop Minimal Preset",
+    "description": "Minimal Windows 11 configuration for desktop systems",
+    "author": "tiny11-handheld",
+    "created": "2024-01-01T00:00:00Z"
+  },
+  "source": {
+    "architecture": "amd64"
+  },
+  "output": {
+    "imageName": "tiny11-desktop.iso",
+    "outputPath": "./output",
+    "compressionLevel": "fast"
+  },
+  "packages": {
+    "removeEdge": false,
+    "removeOneDrive": false,
+    "removeList": [
+      "Microsoft.BingNews",
+      "Microsoft.BingWeather",
+      "Microsoft.GamingApp",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.Microsoft3DViewer",
+      "Microsoft.MicrosoftOfficeHub",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.MixedReality.Portal",
+      "Microsoft.Office.OneNote",
+      "Microsoft.People",
+      "Microsoft.SkypeApp",
+      "Microsoft.Todos",
+      "Microsoft.WindowsAlarms",
+      "Microsoft.WindowsCamera",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.WindowsMaps",
+      "Microsoft.Xbox.TCUI",
+      "Microsoft.XboxApp",
+      "Microsoft.XboxGameOverlay",
+      "Microsoft.XboxGamingOverlay",
+      "Microsoft.XboxIdentityProvider",
+      "Microsoft.XboxSpeechToTextOverlay",
+      "Microsoft.YourPhone",
+      "Microsoft.ZuneMusic",
+      "Microsoft.ZuneVideo"
+    ],
+    "keepList": [
+      "Microsoft.WindowsStore",
+      "Microsoft.WindowsTerminal",
+      "Microsoft.DesktopAppInstaller",
+      "Microsoft.windowscommunicationsapps"
+    ]
+  },
+  "features": {
+    "bypassSystemRequirements": false,
+    "bypassTPM": false,
+    "bypassSecureBoot": false,
+    "bypassRAMCheck": false
+  },
+  "scripts": {
+    "buildVerification": true
+  },
+  "optimization": {
+    "componentCleanup": true,
+    "resetBase": false,
+    "removeWinSxSBackups": false
+  },
+  "drivers": {
+    "inject": false
+  },
+  "updates": {
+    "inject": false
+  },
+  "oem": {
+    "inject": false
+  },
+  "unattended": {
+    "timezone": "Pacific Standard Time",
+    "locale": "en-US",
+    "keyboardLayout": "0409:00000409",
+    "userAccount": {
+      "username": "bschooley",
+      "password": "Iafw2day!",
+      "group": "Administrators"
+    }
+  },
+  "postInstall": {
+    "packagesJsonPath": "packages.json"
+  }
+}

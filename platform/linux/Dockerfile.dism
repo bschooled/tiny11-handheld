@@ -1,0 +1,43 @@
+# Dockerfile for Windows Server Core with DISM support
+# Used on Linux to provide Windows DISM functionality via Docker
+#
+# Base: Windows Server Core LTSC 2022 (official Microsoft image)
+# Purpose: Enable DISM operations on Linux host for WIM manipulation
+# Requirements: Docker with Windows container support (experimental on Linux)
+#
+# Build: docker build -f Dockerfile.dism -t tiny11-dism:latest .
+# Usage: See docker-dism.sh for orchestration
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Metadata
+LABEL maintainer="tiny11-handheld"
+LABEL description="Windows Server Core with DISM for Linux-based Windows 11 image building"
+LABEL version="1.0.0"
+
+# Set PowerShell as default shell
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Verify DISM is available (built-in to Windows Server Core)
+RUN dism /? | Out-Null; \
+    if ($LASTEXITCODE -ne 0) { \
+        Write-Error 'DISM not available in base image'; \
+        exit 1; \
+    } else { \
+        Write-Host 'DISM verification successful'; \
+    }
+
+# Set working directory for build operations
+WORKDIR /build
+
+# Volume mount points (defined at runtime):
+# - /build/workspace: Build workspace directory
+# - /build/source: Source ISO extraction location
+# - /build/output: Output directory for final ISO
+
+# Default command: Keep container running for exec commands
+CMD ["powershell", "-NoLogo", "-NoProfile", "-Command", "Write-Host 'DISM container ready. Use docker exec for operations.'; Start-Sleep -Seconds 86400"]
+
+# Health check: Verify DISM is responsive
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD powershell -Command "dism /? | Out-Null; exit $LASTEXITCODE"

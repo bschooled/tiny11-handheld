@@ -1,0 +1,47 @@
+{
+  "$schema": "../templates/presets/schema.json",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Validation Test",
+    "description": "Minimal preset for testing autounattend.xml structure - only product key and local account",
+    "author": "tiny11-handheld",
+    "created": "2026-01-22T00:00:00Z"
+  },
+  "source": {
+    "architecture": "amd64"
+  },
+  "output": {
+    "imageName": "win11-validation.iso",
+    "outputPath": "/home/bschooley/local-dev/tiny11-handheld/output"
+  },
+  "packages": {
+    "removeOneDrive": false,
+    "removeList": []
+  },
+  "features": {
+    "bypassTPM": true,
+    "bypassSecureBoot": true,
+    "bypassRAMCheck": true,
+    "compactOS": false
+  },
+  "unattended": {
+    "timezone": "Pacific Standard Time",
+    "locale": "en-US",
+    "keyboardLayout": "0409:00000409",
+    "userAccount": {
+      "username": "User",
+      "password": "Password123",
+      "group": "Administrators"
+    }
+  },
+  "privacy": {},
+  "ui": {},
+  "security": {},
+  "performance": {},
+  "browser": {},
+  "oem": {
+    "inject": false,
+    "oemPath": null,
+    "copy": []
+  }
+}

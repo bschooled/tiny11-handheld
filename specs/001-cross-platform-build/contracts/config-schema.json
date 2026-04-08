@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/bschooley/tiny11-handheld/schemas/build-configuration.json",
+  "title": "Tiny11 Handheld Build Configuration",
+  "description": "Configuration schema for cross-platform Windows 11 image builder",
+  "type": "object",
+  "required": ["version", "source", "output"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration schema version (semver)"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Descriptive name for this build configuration"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of this build's purpose"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author of this configuration"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when configuration was created"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["isoPath", "architecture"],
+      "properties": {
+        "isoPath": {
+          "type": "string",
+          "description": "Path to Windows 11 source ISO file"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA256 checksum of source ISO (optional, for validation)"
+        },
+        "architecture": {
+          "enum": ["amd64", "arm64"],
+          "description": "CPU architecture of the Windows image"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["imageName", "outputPath"],
+      "properties": {
+        "imageName": {
+          "type": "string",
+          "pattern": "^[\\w\\-\\.]+\\.iso$",
+          "description": "Output ISO filename (must end with .iso)"
+        },
+        "outputPath": {
+          "type": "string",
+          "description": "Directory where output ISO will be created"
+        },
+        "compressionLevel": {
+          "enum": ["none", "fast", "max", "recovery"],
+          "default": "max",
+          "description": "WIM compression level: none (fastest), fast, max (smallest), recovery (bootable)"
+        }
+      }
+    },
+    "packages": {
+      "type": "object",
+      "properties": {
+        "removeEdge": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove Microsoft Edge browser (may break some Windows features)"
+        },
+        "removeOneDrive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove OneDrive client and disable folder backup"
+        },
+        "removeList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of package names to remove (e.g., Microsoft.WindowsAlarms)"
+        },
+        "keepList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of package names to explicitly preserve even if in removeList"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "bypassSystemRequirements": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass Windows 11 system requirements checks (enables all bypass options below)"
+        },
+        "bypassTPM": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass TPM 2.0 requirement (SECURITY RISK if used on internet-connected systems)"
+        },
+        "bypassSecureBoot": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass Secure Boot requirement (SECURITY RISK if used on internet-connected systems)"
+        },
+        "bypassRAMCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass 4GB RAM minimum requirement"
+        },
+        "bypassCPUCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass CPU compatibility check"
+        }
+      }
+    },
+    "optimization": {
+      "type": "object",
+      "properties": {
+        "componentCleanup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run component cleanup to remove superseded components"
+        },
+        "resetBase": {
+          "type": "boolean",
+          "default": true,
+          "description": "Reset base of superseded components (further reduces size)"
+        },
+        "removeWinSxSBackups": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove WinSxS backup files (CAUTION: prevents component repair)"
+        }
+      }
+    },
+    "drivers": {
+      "type": "object",
+      "properties": {
+        "inject": {
+          "type": "boolean",
+          "default": false,
+          "description": "Inject custom drivers into the image"
+        },
+        "driverPath": {
+          "type": "string",
+          "description": "Path to directory containing .inf driver files"
+        },
+        "recursive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Search driverPath subdirectories recursively"
+        }
+      }
+    },
+    "updates": {
+      "type": "object",
+      "properties": {
+        "inject": {
+          "type": "boolean",
+          "default": false,
+          "description": "Inject Windows Updates into the image"
+        },
+        "updatePath": {
+          "type": "string",
+          "description": "Path to directory containing .msu or .cab update files"
+        }
+      }
+    },
+    "oem": {
+      "type": "object",
+      "properties": {
+        "inject": {
+          "type": "boolean",
+          "default": false,
+          "description": "Inject OEM files and applications"
+        },
+        "oemPath": {
+          "type": "string",
+          "description": "Path to directory containing OEM files"
+        }
+      }
+    },
+    "postInstall": {
+      "type": "object",
+      "properties": {
+        "packagesJsonPath": {
+          "type": "string",
+          "default": "./packages.json",
+          "description": "Path to packages.json defining post-install applications"
+        }
+      }
+    }
+  }
+}

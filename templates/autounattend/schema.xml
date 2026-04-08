@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Windows 11 Autounattend Schema Template
+    
+    This file serves as the authoritative schema showing ALL available configuration options.
+    During build, this template is copied and populated with preset-specific values.
+    
+    Template Variables (replaced during build):
+    - {{LOCALE}}              e.g., "en-US"
+    - {{INPUT_LOCALE}}        e.g., "0409:00000409"
+    - {{PRODUCT_KEY}}         Windows product key
+    - {{TIMEZONE}}            e.g., "Pacific Standard Time"
+    - {{USERNAME}}            User account name
+    - {{PASSWORD}}            User account password (plain text)
+    - {{COMPUTER_NAME}}       Computer name or "*" for random
+    
+    Optional Blocks (included/excluded based on preset):
+    - {{BYPASS_COMMANDS}}     TPM/SecureBoot/RAM bypass registry commands
+    - {{DISK_CONFIG}}         Disk partitioning configuration
+    - {{SPECIALIZE_SCRIPTS}}  Registry modifications during specialize phase
+    - {{DEFAULT_USER_SCRIPTS}} Default user profile customizations
+    - {{FIRSTLOGON_SCRIPTS}}  Scripts run on first system boot
+    - {{USERONCE_SCRIPTS}}    Scripts run once per user on first login
+    
+    Build Process:
+    1. Copy templates/autounattend/schema.xml to workspace/autounattend.xml
+    2. Replace {{VARIABLES}} with values from preset JSON
+    3. Include/exclude optional blocks based on preset configuration
+    4. Write final autounattend.xml to workspace/iso/autounattend.xml
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+    
+    <!-- ==================================================================================
+         PASS 1: windowsPE (Pre-Installation Environment)
+         Runs during Windows Setup before installation begins
+         ================================================================================== -->
+    <settings pass="windowsPE">
+        
+        <!-- Language and Keyboard Configuration -->
+        <component name="Microsoft-Windows-International-Core-WinPE" 
+                   processorArchitecture="amd64" 
+                   publicKeyToken="31bf3856ad364e35" 
+                   language="neutral" 
+                   versionScope="nonSxS">
+            <SetupUILanguage>
+                <UILanguage>{{LOCALE}}</UILanguage>
+            </SetupUILanguage>
+            <InputLocale>{{INPUT_LOCALE}}</InputLocale>
+            <SystemLocale>{{LOCALE}}</SystemLocale>
+            <UILanguage>{{LOCALE}}</UILanguage>
+            <UserLocale>{{LOCALE}}</UserLocale>
+        </component>
+        
+        <!-- Installation Setup Configuration -->
+        <component name="Microsoft-Windows-Setup" 
+                   processorArchitecture="amd64" 
+                   publicKeyToken="31bf3856ad364e35" 
+                   language="neutral" 
+                   versionScope="nonSxS">
+            
+            <!-- Product Key and EULA -->
+            <UserData>
+                <ProductKey>
+                    <Key>{{PRODUCT_KEY}}</Key>
+                    <WillShowUI>OnError</WillShowUI>
+                </ProductKey>
+                <AcceptEula>true</AcceptEula>
+            </UserData>
+            
+            <!-- System Requirements Bypass Commands (Optional) -->
+            <RunSynchronous>
+{{BYPASS_COMMANDS}}
+            </RunSynchronous>
+            
+            <!-- Disk Configuration (Optional) -->
+{{DISK_CONFIG}}
+            
+        </component>
+    </settings>
+    
+    <!-- ==================================================================================
+         PASS 2: specialize (System-Specific Configuration)
+         Runs after Windows is installed but before OOBE
+         Used for system-wide registry modifications and computer-specific settings
+         ================================================================================== -->
+    <settings pass="specialize">
+        
+        <component name="Microsoft-Windows-Shell-Setup" 
+                   processorArchitecture="amd64" 
+                   publicKeyToken="31bf3856ad364e35" 
+                   language="neutral" 
+                   versionScope="nonSxS">
+            
+            <!-- Computer Name -->
+            <ComputerName>{{COMPUTER_NAME}}</ComputerName>
+            
+            <!-- Timezone -->
+            <TimeZone>{{TIMEZONE}}</TimeZone>
+            
+            <!-- System Registry Modifications (Optional) -->
+            <RunSynchronous>
+{{SPECIALIZE_SCRIPTS}}
+            </RunSynchronous>
+            
+        </component>
+    </settings>
+    
+    <!-- ==================================================================================
+         PASS 3: oobeSystem (Out-of-Box Experience)
+         Runs during Windows Welcome / OOBE
+         Used for user account creation and OOBE customization
+         ================================================================================== -->
+    <settings pass="oobeSystem">
+        
+        <!-- Regional Settings -->
+        <component name="Microsoft-Windows-International-Core" 
+                   processorArchitecture="amd64" 
+                   publicKeyToken="31bf3856ad364e35" 
+                   language="neutral" 
+                   versionScope="nonSxS">
+            <InputLocale>{{INPUT_LOCALE}}</InputLocale>
+            <SystemLocale>{{LOCALE}}</SystemLocale>
+            <UILanguage>{{LOCALE}}</UILanguage>
+            <UserLocale>{{LOCALE}}</UserLocale>
+        </component>
+        
+        <!-- User Account and OOBE Configuration -->
+        <component name="Microsoft-Windows-Shell-Setup" 
+                   processorArchitecture="amd64" 
+                   publicKeyToken="31bf3856ad364e35" 
+                   language="neutral" 
+                   versionScope="nonSxS">
+            
+            <!-- OOBE Screen Customization -->
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <ProtectYourPC>3</ProtectYourPC>
+                <SkipUserOOBE>true</SkipUserOOBE>
+                <SkipMachineOOBE>true</SkipMachineOOBE>
+            </OOBE>
+            
+            <!-- Local User Account Creation -->
+            <UserAccounts>
+                <LocalAccounts>
+                    <LocalAccount wcm:action="add">
+                        <Password>
+                            <Value>{{PASSWORD}}</Value>
+                            <PlainText>true</PlainText>
+                        </Password>
+                        <DisplayName>{{USERNAME}}</DisplayName>
+                        <Group>Administrators</Group>
+                        <Name>{{USERNAME}}</Name>
+                    </LocalAccount>
+                </LocalAccounts>
+            </UserAccounts>
+            
+            <!-- Auto-Login Configuration -->
+            <AutoLogon>
+                <Password>
+                    <Value>{{PASSWORD}}</Value>
+                    <PlainText>true</PlainText>
+                </Password>
+                <Enabled>true</Enabled>
+                <Username>{{USERNAME}}</Username>
+            </AutoLogon>
+            
+            <!-- First Logon Commands (Optional) -->
+            <FirstLogonCommands>
+{{FIRSTLOGON_SCRIPTS}}
+            </FirstLogonCommands>
+            
+        </component>
+    </settings>
+    
+    <!-- ==================================================================================
+         Extensions (Embedded Scripts and Files)
+         Contains PowerShell scripts and other files embedded in the XML
+         ================================================================================== -->
+    <Extensions>
+{{DEFAULT_USER_SCRIPTS}}
+{{USERONCE_SCRIPTS}}
+    </Extensions>
+    
+</unattend>

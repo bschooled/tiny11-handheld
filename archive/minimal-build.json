@@ -1,0 +1,188 @@
+{
+  "$schema": "../docs/PRESET_SCHEMA.md",
+  "description": "Comprehensive example showing all available configuration options",
+  
+  "_comment_locale": "System locale/region settings (e.g., en-US, de-DE, ja-JP)",
+  "locale": "en-US",
+  
+  "_comment_timezone": "Windows timezone (e.g., 'Pacific Standard Time', 'Eastern Standard Time', 'UTC')",
+  "timezone": "Pacific Standard Time",
+  
+  "_comment_keyboard": "Keyboard layout code in format 'LanguageID:KeyboardID' (0409:00000409 = US English)",
+  "keyboard": "0409:00000409",
+  
+  "_comment_userAccount": "Default user account created automatically during installation",
+  "userAccount": {
+    "_comment": "Username for the default account",
+    "username": "bschooley",
+    "_comment_password": "Password for the default account (plain text - will be hashed during install)",
+    "password": "Iafw2day!",
+    "_comment_group": "User group membership: 'Administrators' or 'Users'",
+    "group": "Administrators"
+  },
+
+  "_comment_privacy": "Privacy settings to control data collection and user tracking",
+  "privacy": {
+    "_comment_disableAppSuggestions": "Disable app suggestions and ads in Start menu/notifications/lockscreen (HKCU ContentDeliveryManager)",
+    "disableAppSuggestions": true,
+    
+    "_comment_disableTelemetry": "Disable Windows telemetry and diagnostic data collection",
+    "disableTelemetry": true,
+    
+    "_comment_disableCopilot": "Disable Windows Copilot AI assistant (HKCU WindowsCopilot\\TurnOffWindowsCopilot)",
+    "disableCopilot": true,
+    
+    "_comment_expressSettings": "OOBE privacy settings: 'interactive' (user chooses), 'enableAll', or 'disableAll'",
+    "expressSettings": "disableAll"
+  },
+
+  "_comment_security": "Security features and protections configuration",
+  "security": {
+    "_comment_disableUac": "Disable User Account Control prompts (HKLM Policies\\System\\EnableLUA) - NOT RECOMMENDED for security",
+    "disableUac": false,
+    
+    "_comment_disableSmartScreen": "Disable Windows SmartScreen filter for apps/files/websites (HKLM Explorer\\SmartScreenEnabled)",
+    "disableSmartScreen": true,
+    
+    "_comment_disableVirtualizationBasedSecurity": "Disable VBS/HVCI (memory integrity) - improves performance but reduces security (HKLM DeviceGuard)",
+    "disableVirtualizationBasedSecurity": true,
+    
+    "_comment_preventDeviceEncryption": "Prevent automatic BitLocker device encryption (HKLM BitLocker\\PreventDeviceEncryption)",
+    "preventDeviceEncryption": true,
+    
+    "_comment_bypassRequirementsCheck": "Bypass TPM 2.0, Secure Boot, and RAM requirements for Windows 11 installation (HKLM Setup\\LabConfig)",
+    "bypassRequirementsCheck": true
+  },
+
+  "_comment_ui": "User interface appearance and behavior settings",
+  "ui": {
+    "_comment_showFileExtensions": "Show file extensions in File Explorer (HKCU Explorer\\Advanced\\HideFileExt = 0)",
+    "showFileExtensions": true,
+    
+    "_comment_hideFiles": "Hidden file visibility: 'none' (show all), 'hidden' (hide hidden), 'hiddenSystem' (hide hidden+system)",
+    "hideFiles": "hidden",
+    
+    "_comment_taskbarSearch": "Taskbar search box appearance: 'hide', 'icon', 'box', or 'label' (HKCU Search\\SearchboxTaskbarMode)",
+    "taskbarSearch": "box",
+    
+    "_comment_disableWidgets": "Disable widgets/news and interests on taskbar (HKLM Policies\\Dsh\\AllowNewsAndInterests)",
+    "disableWidgets": true,
+    
+    "_comment_launchToThisPC": "Open File Explorer to 'This PC' instead of 'Quick Access' (HKCU Explorer\\Advanced\\LaunchTo = 1)",
+    "launchToThisPC": true,
+    
+    "_comment_disableWindowsConsumerFeatures": "Disable consumer features: app suggestions, tips, ads, etc. (HKLM CloudContent\\DisableWindowsConsumerFeatures)",
+    "disableWindowsConsumerFeatures": true,
+    
+    "_comment_emptyStartPins": "Remove all pinned items from Start menu (sets ConfigureStartPins to empty JSON)",
+    "emptyStartPins": true,
+    
+    "_comment_disableBingResults": "Disable Bing web results in Windows Search (HKCU Explorer\\DisableSearchBoxSuggestions)",
+    "disableBingResults": true,
+    
+    "_comment_disableStickyKeys": "Disable Sticky Keys accessibility feature that triggers with 5x Shift press (HKCU Accessibility\\StickyKeys)",
+    "disableStickyKeys": true
+  },
+
+  "_comment_performance": "Performance optimization settings",
+  "performance": {
+    "_comment_enableLongPaths": "Enable NTFS long path support >260 characters for modern apps (HKLM FileSystem\\LongPathsEnabled)",
+    "enableLongPaths": true,
+    
+    "_comment_disableFastStartup": "Disable fast startup/hybrid shutdown - improves dual-boot compatibility (HKLM Power\\HiberbootEnabled = 0)",
+    "disableFastStartup": true,
+    
+    "_comment_disableSystemRestore": "Disable System Restore to save disk space (removes restore points)",
+    "disableSystemRestore": true,
+    
+    "_comment_disableWindowsUpdate": "Disable automatic Windows Update installation - NOT RECOMMENDED for security",
+    "disableWindowsUpdate": false
+  },
+
+  "_comment_development": "Settings for developers and power users",
+  "development": {
+    "_comment_allowPowerShellScripts": "Set PowerShell execution policy to RemoteSigned to allow local script execution",
+    "allowPowerShellScripts": true
+  },
+
+  "_comment_browser": "Microsoft Edge browser configuration",
+  "browser": {
+    "_comment_hideEdgeFre": "Hide Edge First Run Experience welcome screen (HKLM Policies\\Edge\\HideFirstRunExperience)",
+    "hideEdgeFre": true,
+    
+    "_comment_disableEdgeStartupBoost": "Disable Edge startup boost and background processes (HKLM Policies\\Edge\\StartupBoostEnabled = 0)",
+    "disableEdgeStartupBoost": true
+  },
+
+  "_comment_bloatware": "Pre-installed application and feature removal",
+  "bloatware": {
+    "_comment_removePackages": "AppxPackages (UWP apps) to remove - reduces disk usage and clutter",
+    "removePackages": [
+      "Microsoft.Microsoft3DViewer",
+      "Microsoft.BingSearch",
+      "Microsoft.WindowsCamera",
+      "Clipchamp.Clipchamp",
+      "Microsoft.WindowsAlarms",
+      "Microsoft.549981C3F5F10",
+      "Microsoft.Windows.DevHome",
+      "MicrosoftCorporationII.MicrosoftFamily",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "microsoft.windowscommunicationsapps",
+      "Microsoft.WindowsMaps",
+      "Microsoft.MixedReality.Portal",
+      "Microsoft.BingNews",
+      "Microsoft.MicrosoftOfficeHub",
+      "Microsoft.Office.OneNote",
+      "Microsoft.OutlookForWindows",
+      "Microsoft.MSPaint",
+      "Microsoft.People",
+      "Microsoft.PowerAutomateDesktop",
+      "MicrosoftCorporationII.QuickAssist",
+      "Microsoft.SkypeApp",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.MicrosoftStickyNotes",
+      "MicrosoftTeams",
+      "MSTeams",
+      "Microsoft.Todos",
+      "Microsoft.WindowsSoundRecorder",
+      "Microsoft.BingWeather",
+      "Microsoft.YourPhone"
+    ],
+    
+    "_comment_removeCapabilities": "Windows capabilities (optional components) to remove - frees disk space",
+    "removeCapabilities": [
+      "Print.Fax.Scan",
+      "Language.Handwriting",
+      "Browser.InternetExplorer",
+      "MathRecognizer",
+      "OneCoreUAP.OneSync",
+      "Microsoft.Windows.PowerShell.ISE",
+      "App.Support.QuickAssist",
+      "Language.Speech",
+      "Language.TextToSpeech",
+      "App.StepsRecorder",
+      "Media.WindowsMediaPlayer",
+      "Microsoft.Windows.WordPad"
+    ],
+    
+    "_comment_removeFeatures": "Windows optional features to disable",
+    "removeFeatures": [
+      "MicrosoftWindowsPowerShellV2Root",
+      "Recall"
+    ]
+  },
+
+  "_comment_scripts": "Custom PowerShell scripts to execute during installation phases",
+  "scripts": {
+    "_comment_bootstrapScript": "Path to bootstrap PowerShell script to execute (relative to preset file or absolute path)",
+    "bootstrapScript": ""
+  },
+
+  "_comment_passwordPolicy": "Windows password policy configuration",
+  "passwordPolicy": {
+    "_comment_maxPasswordAge": "Maximum password age: 'unlimited' or number of days before password expires",
+    "maxPasswordAge": "unlimited"
+  }
+}

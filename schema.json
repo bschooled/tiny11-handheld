@@ -1,0 +1,360 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/bschooley/tiny11-handheld/schema.json",
+  "title": "Tiny11 Handheld Build Configuration",
+  "description": "Configuration schema for cross-platform Windows 11 image builder",
+  "type": "object",
+  "required": ["version", "source", "output"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration schema version (semver format)"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable configuration name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Configuration description"
+        },
+        "author": {
+          "type": "string",
+          "description": "Configuration author"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Configuration creation timestamp (ISO 8601)"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["isoPath", "architecture"],
+      "properties": {
+        "isoPath": {
+          "type": "string",
+          "description": "Path to Windows 11 source ISO file"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA256 checksum of source ISO (optional but recommended)"
+        },
+        "architecture": {
+          "type": "string",
+          "enum": ["amd64", "arm64"],
+          "description": "Target architecture"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["imageName", "outputPath"],
+      "properties": {
+        "imageName": {
+          "type": "string",
+          "pattern": "^[\\w\\-. ]+\\.iso$",
+          "description": "Output ISO filename"
+        },
+        "outputPath": {
+          "type": "string",
+          "description": "Directory for output ISO"
+        },
+        "compressionLevel": {
+          "type": "string",
+          "enum": ["none", "fast", "max", "recovery"],
+          "default": "fast",
+          "description": "WIM compression level"
+        }
+      }
+    },
+    "packages": {
+      "type": "object",
+      "properties": {
+        "removeEdge": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove Microsoft Edge browser"
+        },
+        "removeOneDrive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove OneDrive integration"
+        },
+        "removeList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of package names to remove"
+        },
+        "keepList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of package names to preserve (overrides removeList)"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "bypassSystemRequirements": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass all system requirement checks (TPM, SecureBoot, RAM)"
+        },
+        "bypassTPM": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass TPM 2.0 requirement"
+        },
+        "bypassSecureBoot": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass Secure Boot requirement"
+        },
+        "bypassRAMCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bypass RAM requirement check"
+        },
+        "compactOS": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable CompactOS (compressed system binaries). Disabled by default"
+        }
+      }
+    },
+    "scripts": {
+      "type": "object",
+      "properties": {
+        "buildVerification": {
+          "oneOf": [
+            { "type": "boolean", "default": false },
+            {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" }
+              }
+            }
+          ],
+          "description": "Run built-in or custom verification script on first login"
+        },
+        "runOnce": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ],
+          "description": "One-time login script path(s) executed at first logon"
+        }
+      }
+    },
+    "optimization": {
+      "type": "object",
+      "properties": {
+        "componentCleanup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run component cleanup to reduce image size"
+        },
+        "resetBase": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reset the base of superseded components"
+        },
+        "removeWinSxSBackups": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove WinSxS component backups (irreversible)"
+        }
+      }
+    },
+    "drivers": {
+      "type": "object",
+      "properties": {
+        "inject": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable driver injection"
+        },
+        "driverPath": {
+          "type": "string",
+          "description": "Path to directory containing driver files (.inf)"
+        },
+        "recursive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Search driver path recursively"
+        }
+      },
+      "dependencies": {
+        "driverPath": {
+          "oneOf": [
+            {
+              "properties": {
+                "inject": {
+                  "const": true
+                },
+                "driverPath": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["inject", "driverPath"]
+            },
+            {
+              "properties": {
+                "inject": {
+                  "const": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "updates": {
+      "type": "object",
+      "properties": {
+        "inject": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Windows Update injection"
+        },
+        "updatePath": {
+          "type": "string",
+          "description": "Path to directory containing update files (.msu, .cab)"
+        }
+      },
+      "dependencies": {
+        "updatePath": {
+          "oneOf": [
+            {
+              "properties": {
+                "inject": {
+                  "const": true
+                },
+                "updatePath": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["inject", "updatePath"]
+            },
+            {
+              "properties": {
+                "inject": {
+                  "const": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "oem": {
+      "type": "object",
+      "properties": {
+        "inject": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable OEM file injection"
+        },
+        "oemPath": {
+          "type": "string",
+          "description": "Path to directory containing OEM customization files"
+        },
+        "copy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": { "type": "string" },
+              "destination": { "type": "string" }
+            },
+            "required": ["source"]
+          },
+          "description": "Files/folders to copy into install via $OEM$\\$1 (destination relative to system drive)"
+        }
+      },
+      "dependencies": {
+        "oemPath": {
+          "oneOf": [
+            {
+              "properties": {
+                "inject": {
+                  "const": true
+                },
+                "oemPath": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["inject", "oemPath"]
+            },
+            {
+              "properties": {
+                "inject": {
+                  "const": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "unattended": {
+      "type": "object",
+      "properties": {
+        "computerName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9\\-]{1,15}$",
+          "description": "Computer name (1-15 characters, alphanumeric and hyphens only). Auto-generated if not provided."
+        },
+        "productKey": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$",
+          "description": "Windows product key (format: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX). Optional."
+        },
+        "timezone": {
+          "type": "string",
+          "default": "Pacific Standard Time",
+          "description": "Windows timezone name (e.g., 'Pacific Standard Time', 'UTC', 'Eastern Standard Time')"
+        },
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-z]{2}-[A-Z]{2}$",
+          "default": "en-US",
+          "description": "Culture code (format: xx-XX, e.g., 'en-US', 'de-DE')"
+        },
+        "keyboardLayout": {
+          "type": "string",
+          "pattern": "^[0-9]{4}:[0-9]{8}$",
+          "default": "0409:00000409",
+          "description": "Keyboard layout code (format: LLLL:KKKKKKKK)"
+        }
+      }
+    },
+    "postInstall": {
+      "type": "object",
+      "properties": {
+        "packagesJsonPath": {
+          "type": "string",
+          "default": "packages.json",
+          "description": "Path to packages.json manifest for post-install applications"
+        }
+      }
+    }
+  }
+}

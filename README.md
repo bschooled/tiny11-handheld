@@ -1,32 +1,62 @@
 # tiny11-handheld
 
-This tool is a modification of [ntdevs](https://github.com/ntdevlabs/tiny11builder) tiny11 image builder intended for Windows handheld devices but can be used on any PC.
+Cross-platform Windows 11 image customization toolkit focused on handheld and low-footprint installs.
 
-The ultimate goal is similar to ntdevs, it generates a modified **Windows 11** install image from a legitimate ISO that when installed has a much smaller footprint.
+This repository builds a customized Windows 11 ISO from a legitimate source ISO using JSON-driven configuration, modular scripts, and unattended install generation.
 
-## So what's different?
+## Build Entry Points
 
-A significant amount of ntdevs code has been modified and automation logic was added outside of their original scope. So ultimately what does this all mean and how is this project unique?
+- Linux: `platform/linux/build.sh`
+- Windows: `platform/windows/build.ps1`
 
-### More options - Build the image you want
+## Quick Start
 
-- Using the included JSONs, choose what you want removed or added to the image.
-- Optionally inject OEM drivers into your image to get your device up-and-running faster.
-- Autounattend simplifies install process, removes additional bloat, and sets up post install logic.
-- Automatically install your preferred applications on first logon with no or limited intervention.
+### Linux
 
-### Expected results
+```bash
+./platform/linux/build.sh --source ./Win11.iso --preset ./presets/handheld.json
+```
 
-- Expect a Windows Image that consumes around 2.5GB of RAM on its most basic install. This is perfect for RAM limited devices like the ROG Ally, allowing you to allocate more RAM to the GPU.
-- **[Optional]** Tools like MemReduct can be easily installed through packages.json to keep memory free for gaming.
-- **[Optional]** Turning off specific security features (at your own risk) can result in better performance, especially in CPU/power restricted scenarios.
-- **[Optional]** Additional tooling to optimize your performance like Universal x86 Tuning Utility and/or Handheld companion.
+Validation-mode build (use known-good template unattended XML):
 
-## How to use
+```bash
+./platform/linux/build.sh --source ./Win11.iso --validation
+```
 
-### Make package decisions by modifying the JSON files
+### Windows
 
-### [Optional] Inject drivers
+```powershell
+.\platform\windows\build.ps1 -SourceIso .\Win11.iso -PresetPath .\presets\handheld.json
+```
 
-### [Optional] Adding OEM executables
+## Configuration
+
+- Presets live in `presets/`
+- Schema is `schema.json`
+- Optional script/config inputs live in `scripts/`
+
+## Repository Layout
+
+- `platform/`: OS-specific build orchestration
+- `modules/`: shared PowerShell modules (config, validation, logging, unattended generation)
+- `presets/`: build profiles
+- `templates/`: unattended and preset schema templates
+- `scripts/`: utility and post-install scripts
+- `docs/`: all project documentation except this README
+
+## Logging and Artifacts
+
+- Build logs are written under `output/logs/`
+- Build workspaces and generated artifacts are gitignored
+- Source ISOs are never committed
+
+## Validation Utilities
+
+- Validation scripts are in `scripts/validation/`
+- Built-in post-install verification script: `scripts/validation/verify-settings.ps1`
+
+## Notes
+
+- Driver injection support differs by platform. See [docs/DRIVER_INJECTION_LINUX.md](docs/DRIVER_INJECTION_LINUX.md).
+- Additional historical/reorg notes are under `docs/notes/`.
 

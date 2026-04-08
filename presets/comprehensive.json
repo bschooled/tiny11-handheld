@@ -1,0 +1,111 @@
+{
+  "$schema": "../../templates/presets/schema.json",
+  "version": "1.0.0",
+
+  "metadata": {
+    "name": "Comprehensive Desktop",
+    "description": "Full-featured preset with security/privacy/UI/performance tweaks and USB-friendly install",
+    "author": "tiny11-handheld",
+    "created": "2026-01-22T00:00:00Z"
+  },
+
+  "source": {
+    "architecture": "amd64"
+  },
+
+  "output": {
+    "imageName": "win11-comprehensive.iso",
+    "outputPath": "./output"
+  },
+
+  "packages": {
+    "removeOneDrive": false,
+    "removeList": [
+      "Microsoft.BingNews",
+      "Microsoft.BingWeather",
+      "Microsoft.GamingApp",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.Xbox.TCUI",
+      "Microsoft.XboxApp",
+      "Microsoft.XboxGameOverlay",
+      "Microsoft.XboxGamingOverlay",
+      "Microsoft.YourPhone",
+      "Microsoft.ZuneMusic",
+      "Microsoft.ZuneVideo"
+    ]
+  },
+
+  "features": {
+    "bypassTPM": true,
+    "bypassSecureBoot": true,
+    "bypassRAMCheck": true,
+    "bypassCPUCheck": true,
+    "bypassStorageCheck": true,
+    "bypassDiskCheck": true,
+    "bypassUpgradeTPMCPUCheck": true,
+    "disableCompatibilityAppraiser": true,
+    "suppressUnsupportedHardwareWarnings": true,
+    "compactOS": true
+  },
+
+  "unattended": {
+    "timezone": "Pacific Standard Time",
+    "locale": "en-US",
+    "keyboardLayout": "0409:00000409",
+    "userAccount": {
+      "username": "bschooley",
+      "password": "Iafw2day!",
+      "group": "Administrators"
+    }
+  },
+
+  "privacy": {
+    "disableTelemetry": true,
+    "disableAppSuggestions": true,
+    "disableCopilot": true,
+    "expressSettings": "disableAll"
+  },
+
+  "security": {
+    "disableSmartScreen": false,
+    "disableVirtualizationBasedSecurity": true,
+    "disableMemoryIntegrity": true,
+    "preventDeviceEncryption": true,
+    "enableUsbInstallation": true
+  },
+
+  "ui": {
+    "showFileExtensions": true,
+    "disableWidgets": true,
+    "launchToThisPC": true,
+    "disableBingResults": true,
+    "disableStickyKeys": true,
+    "emptyStartPins": true,
+    "disableWindowsConsumerFeatures": true
+  },
+
+  "performance": {
+    "enableLongPaths": true,
+    "disableFastStartup": true,
+    "disableHibernation": true,
+    "disableSystemRestore": true,
+    "allowPowerShellScripts": true
+  },
+
+  "development": {
+    "enableDeveloperMode": true,
+    "enableWSL": true,
+    "installWindowsTerminal": true
+  },
+
+  "oem": {
+    "inject": true,
+    "oemPath": null,
+    "copy": [
+        { "source": "./scripts", "destination": "OEM/scripts" }
+    ]
+  }
+}
